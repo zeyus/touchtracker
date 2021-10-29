@@ -10,7 +10,7 @@ void main() => runApp(const TouchTrackerApp());
 class TouchTrackerApp extends StatelessWidget {
   const TouchTrackerApp({Key? key}) : super(key: key);
 
-  static const String _title = 'Flutter Code Sample';
+  static const String _title = 'Touch Tracker';
 
   @override
   Widget build(BuildContext context) {
