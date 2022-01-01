@@ -67,7 +67,16 @@ class ExperimentStorageFireBase extends ExperimentStorage {
     } else {
       expRef = experiments.doc(existingExp.docs.first.id);
     }
-    await expRef.collection('tracking_item').add({'data': data});
+
+    // loop through data and add to firebase
+    List<String> columnLabels =
+        data.removeAt(0).map((item) => item as String).toList();
+    for (List<dynamic> row in data) {
+      // map columnlabels to rows
+      Map<String, dynamic> rowMap =
+          Map<String, dynamic>.fromIterables(columnLabels, row);
+      await expRef.collection('tracking_item').add(rowMap);
+    }
 
     return true;
   }
