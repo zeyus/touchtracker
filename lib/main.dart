@@ -1,16 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:touchtracker/experimentstorage.dart';
-import 'firebase_options.dart';
+import 'package:touchtracker/src/experimentstorage.dart';
+import 'src/config/firebase_options.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:flutter/material.dart';
-import 'experimentlog.dart';
-import 'stimuli.dart';
+import 'src/experimentlog.dart';
+import 'src/stimuli.dart';
+import 'src/touchtracker_bloc.dart';
 
 const bool useFirestoreEmulator = true;
 
 Future<void> main() async {
+  final ttBloc = TouchTrackerBloc();
   WidgetsFlutterBinding.ensureInitialized();
 
   if (useFirestoreEmulator) {
@@ -24,27 +26,29 @@ Future<void> main() async {
     );
   }
   await FirebaseAuth.instance.signInAnonymously();
-  runApp(const TouchTrackerApp());
+  runApp(TouchTrackerApp(bloc: ttBloc));
 }
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
-  const TouchTrackerApp({Key? key}) : super(key: key);
+  final TouchTrackerBloc bloc;
+  const TouchTrackerApp({Key? key, required this.bloc}) : super(key: key);
 
   static const String _title = 'Touch Tracker';
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: _title,
-      home: TouchTrackerWidget(),
+      home: TouchTrackerWidget(bloc: bloc),
     );
   }
 }
 
 /// This is the stateful widget that the main application instantiates.
 class TouchTrackerWidget extends StatefulWidget {
-  const TouchTrackerWidget({Key? key}) : super(key: key);
+  final TouchTrackerBloc bloc;
+  const TouchTrackerWidget({Key? key, required this.bloc}) : super(key: key);
 
   @override
   State<TouchTrackerWidget> createState() => _TouchTrackerWidgetState();
