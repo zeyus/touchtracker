@@ -218,7 +218,6 @@ class Stimuli {
   List<StimulusPair> generateExperiment(
       {int n = 88, int nPhono = 16, int nPre = 3}) {
     final int nNonPhono = n - (nPhono * (nPre + 1));
-    final Random _rand = Random();
     final List<int> nonPhonoDistribution =
         distributeNonCompetingPairs(nPhono + 1, nNonPhono);
     final List<StimulusPair> pairs = [];

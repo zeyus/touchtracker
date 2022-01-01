@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 
 // "acc","accuracy","average_response_time","avg_rt","background","bidi",
@@ -195,7 +196,9 @@ class ExperimentLog {
   }
 
   void debugLog() {
-    print(_logRows.toString());
+    if (kDebugMode) {
+      print(_logRows.toString());
+    }
   }
 
   // _logrows getter

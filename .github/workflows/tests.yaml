@@ -1,4 +1,4 @@
-name: TEST TOUCHTRACKER APP
+name: Run flutter tests on touchtracker app
 on:
   push:
     pull_request:
@@ -10,17 +10,23 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
       - name: Install Flutter
         run: git clone https://github.com/flutter/flutter.git --depth 1 -b $FLUTTER_VERSION _flutter
       - name: Add Flutter to Path
         run: echo "$GITHUB_WORKSPACE/_flutter/bin" >> $GITHUB_PATH
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          path: $GITHUB_WORKSPACE/code
       - name: Install Flutter Dependencies
         run: flutter pub get
+        working-directory: $GITHUB_WORKSPACE/code
       - name: Flutter Analyze
         run: flutter analyze --no-pub
+        working-directory: $GITHUB_WORKSPACE/code
       - name: Check Flutter Formatting
         run: flutter format lib/** --set-exit-if-changed
+        working-directory: $GITHUB_WORKSPACE/code
       - name: Run Flutter Tests
         run: flutter test --no-pub
+        working-directory: $GITHUB_WORKSPACE/code
