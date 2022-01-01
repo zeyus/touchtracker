@@ -1,6 +1,6 @@
 {
-    "name": "touch_tracker",
-    "short_name": "touch_tracker",
+    "name": "touchtracker",
+    "short_name": "touchtracker",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

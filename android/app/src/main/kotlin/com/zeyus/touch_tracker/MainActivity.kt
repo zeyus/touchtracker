@@ -1,4 +1,4 @@
-package com.zeyus.touch_tracker
+package com.zeyus.touchtracker
 
 import io.flutter.embedding.android.FlutterActivity
 

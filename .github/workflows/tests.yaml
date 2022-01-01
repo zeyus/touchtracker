@@ -1,0 +1,26 @@
+name: TEST TOUCHTRACKER APP
+on:
+  push:
+    pull_request:
+      branches:
+        - main
+env:
+  FLUTTER_VERSION: "2.9.0-0.1.pre"
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Install Flutter
+        run: git clone https://github.com/flutter/flutter.git --depth 1 -b $FLUTTER_VERSION _flutter
+      - name: Add Flutter to Path
+        run: echo "$GITHUB_WORKSPACE/_flutter/bin" >> $GITHUB_PATH
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+      - name: Flutter Analyze
+        run: flutter analyze --no-pub
+      - name: Check Flutter Formatting
+        run: flutter format lib/** --set-exit-if-changed
+      - name: Run Flutter Tests
+        run: flutter test --no-pub

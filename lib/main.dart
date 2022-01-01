@@ -1,8 +1,31 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:touchtracker/experimentstorage.dart';
+import 'firebase_options.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:flutter/material.dart';
 import 'experimentlog.dart';
+import 'stimuli.dart';
 
-void main() => runApp(const TouchTrackerApp());
+const bool useFirestoreEmulator = true;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (useFirestoreEmulator) {
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseFirestore.instance.settings = const Settings(
+        host: 'localhost:8080', sslEnabled: false, persistenceEnabled: false);
+  } else {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+  await FirebaseAuth.instance.signInAnonymously();
+  runApp(const TouchTrackerApp());
+}
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
@@ -33,8 +56,10 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   String _xyEnd = '';
   String _xy = '';
   String _vel = '';
+  final Stimuli _stimuli = Stimuli();
 
   final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
+  final ExperimentStorageFireBase _logStorage = ExperimentStorageFireBase();
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +67,73 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
     _log.startTrial();
 
     return Stack(children: [
-      Column(
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Start: ' + _xyStart),
-          Text('Pos: ' + _xy),
-          Text('End: ' + _xyEnd),
-          Text('Velocity: ' + _vel)
+          Padding(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                  width: (MediaQuery.of(context).size.width / 2) - 2 * 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                          height: 200,
+                          width: 200,
+                          child: _stimuli.stimulus('candy')),
+                    ],
+                  ))),
+          Padding(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                  width: (MediaQuery.of(context).size.width / 2) - 2 * 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                          height: 200,
+                          width: 200,
+                          child: _stimuli.stimulus('candle')),
+                    ],
+                  ))),
+        ],
+      ),
+      Row(
+        children: [
+          TextButton(
+            child: const Text('Start'),
+            onPressed: () {
+              _log.startTrial();
+              setState(() {
+                _xyStart = '';
+                _xyEnd = '';
+                _xy = '';
+                _vel = '';
+              });
+            },
+          ),
+          TextButton(
+            child: const Text('End'),
+            onPressed: () {
+              _log.endTrial();
+              setState(() {
+                _xyStart = '';
+                _xyEnd = '';
+                _xy = '';
+                _vel = '';
+              });
+            },
+          ),
+          TextButton(
+            child: const Text('Log'),
+            onPressed: () {
+              _logStorage.write(_log.logRows, key: "testExp");
+            },
+          ),
+          Text('Start: ' + _xyStart, style: const TextStyle(fontSize: 10)),
+          Text('Pos: ' + _xy, style: const TextStyle(fontSize: 10)),
+          Text('End: ' + _xyEnd, style: const TextStyle(fontSize: 10)),
+          Text('Velocity: ' + _vel, style: const TextStyle(fontSize: 10)),
         ],
       ),
       GestureDetector(onPanStart: (DragStartDetails d) {

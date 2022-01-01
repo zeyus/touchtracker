@@ -1,4 +1,4 @@
-# touch_tracker
+# touchtracker
 
 A new Flutter project.
 

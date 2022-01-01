@@ -1,5 +1,5 @@
-name: touch_tracker
-description: A new Flutter project.
+name: touchtracker
+description: Use touch screen devices to create tracking experiments.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=2.15.0-178.1.beta <3.0.0"
@@ -37,6 +37,11 @@ dependencies:
   csv: ^5.0.0
   path_provider: ^2.0.6
   vector_math: ^2.1.1
+  firebase_core: ^1.10.6
+  cloud_firestore: ^3.1.5
+  firebase_storage: ^10.2.4
+  firebase_auth: ^3.3.4
+  flutter_svg: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -61,8 +66,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/vector/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

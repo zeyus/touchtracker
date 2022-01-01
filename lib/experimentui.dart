@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class BasePageWidget extends StatelessWidget {
   BasePageWidget({Key? key}) : super(key: key);
 
-  List<String> items = [];
+  final List<String> items = [];
   Widget method1() {
     return Column(
       children: <Widget>[

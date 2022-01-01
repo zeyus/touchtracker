@@ -197,4 +197,7 @@ class ExperimentLog {
   void debugLog() {
     print(_logRows.toString());
   }
+
+  // _logrows getter
+  List<List<dynamic>> get logRows => _logRows;
 }
