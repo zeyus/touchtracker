@@ -28,5 +28,5 @@ jobs:
         run: flutter format lib/** --set-exit-if-changed
         working-directory: code
       - name: Run Flutter Tests
-        run: flutter test --no-pub
+        run: flutter test --no-pub -r expanded
         working-directory: code
