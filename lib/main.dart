@@ -3,10 +3,9 @@ import 'dart:collection';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/gestures.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
 import 'package:touchtracker/src/config/firebase_options.dart';
-import 'package:touchtracker/src/widgets/hoverable.dart';
+import 'package:touchtracker/src/widgets/audioprompt.dart';
 import 'package:vector_math/vector_math.dart' hide Colors;
 import 'package:flutter/material.dart';
 import 'package:touchtracker/src/experimentlog.dart';
@@ -46,6 +45,7 @@ class TouchTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return MaterialApp(
       title: _title,
       home: TouchTrackerWidget(bloc: bloc),
@@ -55,8 +55,11 @@ class TouchTrackerApp extends StatelessWidget {
 
 /// This is the stateful widget that the main application instantiates.
 class TouchTrackerWidget extends StatefulWidget {
+  late final AudioPrompt _audioPrompt;
   final TouchTrackerBloc bloc;
-  const TouchTrackerWidget({Key? key, required this.bloc}) : super(key: key);
+  TouchTrackerWidget({Key? key, required this.bloc}) : super(key: key) {
+    _audioPrompt = AudioPrompt();
+  }
 
   @override
   State<TouchTrackerWidget> createState() => _TouchTrackerWidgetState();
@@ -74,6 +77,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   bool _overA = false;
   bool _overB = false;
   bool _stimuliVisible = false;
+  bool _promptStarted = false;
+  bool _promptFinished = false;
+
   static const double _circleRadius = 20.0;
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
@@ -84,7 +90,18 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   @override
   void initState() {
     super.initState();
-
+    widget._audioPrompt.setOnPlayStart(() {
+      debugPrint("onPlayStart (main)");
+      setState(() {
+        _promptStarted = true;
+      });
+    });
+    widget._audioPrompt.setOnPlayComplete(() {
+      debugPrint("onPlayComplete (main)");
+      setState(() {
+        _promptFinished = true;
+      });
+    });
     controller.addListener(() {
       setState(() {
         currentPageValue = controller.page!;
@@ -117,14 +134,28 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
               }
               totalPages = targets.length.toDouble();
               return PageView.builder(
+                physics: const NeverScrollableScrollPhysics(),
                 controller: controller,
                 itemCount: targets.length,
-                itemBuilder: (context, index) => _buildStimuli(targets[index]),
+                itemBuilder: (context, index) {
+                  return _buildStimuli(targets[index]);
+                },
               );
             }));
   }
 
   Widget _buildStimuli(StimulusPairTarget stimuli) {
+    if (!_promptStarted) {
+      widget._audioPrompt.play(stimuli);
+      return const Center(
+        child: Text('...'),
+      );
+    } else if (!_promptFinished) {
+      return const Center(
+        child: Text('......'),
+      );
+    }
+
     return Stack(
       key: Key(stimuli.title),
       children: [
@@ -186,15 +217,15 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
               onTap: () {
                 debugPrint("Circle tap");
                 // show only if there is a next page
-                if (controller.page! + 1 < totalPages) {
-                  controller.nextPage(
-                      duration: const Duration(milliseconds: 1),
-                      curve: Curves.linear);
-                } else {
-                  controller.animateToPage(0,
-                      duration: const Duration(milliseconds: 1),
-                      curve: Curves.linear);
-                }
+                // if (controller.page! + 1 < totalPages) {
+                //   controller.nextPage(
+                //       duration: const Duration(milliseconds: 1),
+                //       curve: Curves.linear);
+                // } else {
+                //   controller.animateToPage(0,
+                //       duration: const Duration(milliseconds: 1),
+                //       curve: Curves.linear);
+                // }
               },
               onTapUp: (details) {
                 debugPrint("Circle tap up");
@@ -235,6 +266,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   duration: const Duration(milliseconds: 1),
                   curve: Curves.linear);
               setState(() {
+                _promptStarted = false;
+                _promptFinished = false;
                 _stimuliVisible = false;
               });
             },
@@ -332,6 +365,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         _log.debugLog();
                         setState(() {
                           position = null;
+                          _promptStarted = false;
+                          _promptFinished = false;
                           _stimuliVisible = false;
                         });
                       },
