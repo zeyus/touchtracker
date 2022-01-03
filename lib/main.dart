@@ -70,9 +70,11 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   String _vel = '';
   var currentPageValue = 0.0;
   var totalPages = 0.0;
+  Offset? position;
   bool _overA = false;
   bool _overB = false;
   bool _stimuliVisible = false;
+  static const double _circleRadius = 20.0;
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
 
@@ -82,6 +84,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   @override
   void initState() {
     super.initState();
+
     controller.addListener(() {
       setState(() {
         currentPageValue = controller.page!;
@@ -93,6 +96,10 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   Widget build(BuildContext context) {
     _log.startExperiment();
     _log.startTrial();
+
+    position = position ??
+        Offset(MediaQuery.of(context).size.width / 2 - _circleRadius,
+            MediaQuery.of(context).size.height / 1.25 - _circleRadius);
 
     return Scaffold(
         appBar: null,
@@ -128,27 +135,46 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             _buildStimulus(stimuli, Target.b),
           ],
         ),
-        Center(
+        Positioned(
+          left: position!.dx,
+          top: position!.dy,
           child: SizedBox(
-            width: 20,
-            height: 20,
+            width: _circleRadius * 2,
+            height: _circleRadius * 2,
             child:
                 // add button to navigate to next page
                 GestureDetector(
-              child: const Draggable<bool>(
+              child: Draggable<bool>(
                 data: true,
-                child: CircleAvatar(
-                    radius: 10,
+                // dragAnchorStrategy: pointerDragAnchorStrategy,
+                child: const CircleAvatar(
+                    radius: _circleRadius,
                     foregroundColor: Colors.black,
                     backgroundColor: Colors.black),
-                feedback: CircleAvatar(
-                    radius: 10,
+                feedback: const CircleAvatar(
+                    radius: _circleRadius,
                     foregroundColor: Colors.black,
                     backgroundColor: Colors.black),
-                childWhenDragging: CircleAvatar(
-                    radius: 10,
+                childWhenDragging: const CircleAvatar(
+                    radius: _circleRadius,
                     foregroundColor: Colors.grey,
                     backgroundColor: Colors.grey),
+                onDragStarted: () {
+                  setState(() {
+                    debugPrint("DragStart");
+                    _stimuliVisible = true;
+                  });
+                },
+                onDraggableCanceled: (Velocity velocity, Offset offset) {
+                  debugPrint("DragCancelled");
+                  setState(() => position = offset);
+                },
+                // onDragEnd: (DraggableDetails details) {
+                //   setState(() {
+                //     debugPrint("DragEnd");
+                //     // position = details.offset;
+                //   });
+                // },
               ),
               onTapDown: (details) {
                 _log.startTrial();
@@ -241,22 +267,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             setState(() {
               _xyEnd = _xy;
               _vel = d.velocity.toString();
-              if (_overA || _overB) {
-                _log.endTrial();
-                if (controller.page! + 1 < totalPages) {
-                  controller.nextPage(
-                      duration: const Duration(milliseconds: 1),
-                      curve: Curves.linear);
-                }
-                _log.debugLog();
-                setState(() {
-                  _stimuliVisible = false;
-                });
-                return;
-              }
-
-              //debug code
-              _log.debugLog();
             });
           }
         })
@@ -275,34 +285,60 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
           maintainAnimation: true,
           maintainState: true,
           visible: _stimuliVisible,
-          child: Container(
-            decoration: BoxDecoration(border: Border.all(color: Colors.black)),
-            child: SizedBox(
-              width: (MediaQuery.of(context).size.width / 2) - 2 * 20,
-              child: Column(
-                crossAxisAlignment: alignment,
-                children: [
-                  SizedBox(
-                      height: 200,
-                      width: 200,
-                      child: Hoverable(
-                          onHover: () {
-                            debugPrint("Target $which hovered");
-                            setState(() {
-                              _overA = which == Target.a;
-                              _overB = which == Target.b;
-                            });
-                          },
-                          onExit: () {
-                            debugPrint("Target $which hover exit");
-                            setState(() {
-                              _overA = false;
-                              _overB = false;
-                            });
-                          },
-                          child: widget.bloc.stimuli.stimulus(stimulus))),
-                ],
-              ),
+          child: SizedBox(
+            width: (MediaQuery.of(context).size.width / 2) - 2 * 22,
+            child: Column(
+              crossAxisAlignment: alignment,
+              children: [
+                SizedBox(
+                  height: 200,
+                  width: 200,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black, width: 1),
+                    ),
+                    child: DragTarget(
+                      onMove: (DragTargetDetails<Object> details) {
+                        debugPrint(
+                            "Target $which (${which == stimuli.target ? 'correct' : 'incorrect'}) hovered");
+                        setState(() {
+                          _overA = which == Target.a;
+                          _overB = which == Target.b;
+                        });
+                      },
+                      onLeave: (Object? details) {
+                        debugPrint("Target $which hover exit");
+                        setState(() {
+                          _overA = false;
+                          _overB = false;
+                        });
+                      },
+                      builder: (context, candidateData, rejectedData) {
+                        return Center(
+                          child: SizedBox(
+                            width: 180,
+                            height: 180,
+                            child: widget.bloc.stimuli.stimulus(stimulus),
+                          ),
+                        );
+                      },
+                      onAccept: (data) {
+                        _log.endTrial();
+                        if (controller.page! + 1 < totalPages) {
+                          controller.nextPage(
+                              duration: const Duration(milliseconds: 1),
+                              curve: Curves.linear);
+                        }
+                        _log.debugLog();
+                        setState(() {
+                          position = null;
+                          _stimuliVisible = false;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ));
