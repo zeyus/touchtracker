@@ -26,6 +26,7 @@ class AudioPrompt {
   Future<AudioPlayer> play(StimulusPairTarget prompt) async {
     String target = prompt.getTargetStimulus();
     String filename = '$assetPath$target$fileExtension';
+    debugPrint("playing $filename");
     // await audioCache.play(filename);
     return await audioCache.play(filename);
   }
