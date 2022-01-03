@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:touchtracker/stimuli.dart';
+import 'package:touchtracker/src/stimuli.dart';
 import 'package:collection/collection.dart';
 
 void main() {

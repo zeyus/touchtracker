@@ -1,16 +1,18 @@
 // all outputs and inputs are streams. no synchronious communication
 import 'dart:async';
 import 'package:rxdart/rxdart.dart';
-import 'stimuli.dart';
+import 'package:touchtracker/src/stimuli.dart';
 import 'dart:collection';
 
 class TouchTrackerBloc {
+  late final Stimuli _stimuli;
   final _targetsSubject =
       BehaviorSubject<UnmodifiableListView<StimulusPairTarget>>();
 
-  final _targets = <StimulusPairTarget>[];
+  var _targets = <StimulusPairTarget>[];
 
-  TouchTrackerBloc() {
+  TouchTrackerBloc({Stimuli? stimuli}) {
+    _stimuli = stimuli ?? Stimuli();
     _getTargets().then((_) {
       _targetsSubject.add(UnmodifiableListView(_targets));
     });
@@ -20,6 +22,9 @@ class TouchTrackerBloc {
       _targetsSubject.stream;
 
   Future<List<StimulusPairTarget>> _getTargets() async {
+    _targets = _stimuli.generateExperiment();
     return _targets;
   }
+
+  Stimuli get stimuli => _stimuli;
 }

@@ -59,6 +59,31 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
     return StimulusPairTarget(pair.a, pair.b, target, pairType);
   }
 
+  String get title {
+    String title = '';
+    switch (_pairType) {
+      case PairType.control:
+        title = 'Control: ';
+        break;
+      case PairType.phonoCompetitor:
+        title = 'Competitor: ';
+        break;
+      case PairType.phonoTarget:
+        title = 'Target: ';
+        break;
+    }
+    title += a.toString();
+    if (_target == Target.a) {
+      title += '*';
+    }
+    title += ' vs. ';
+    title += b.toString();
+    if (_target == Target.b) {
+      title += '*';
+    }
+    return title;
+  }
+
   getTargetStimulus() => getFromTarget(_target);
   getCompetitorStimulus() => getCompetitorFromTarget(_target);
 
@@ -215,12 +240,12 @@ class Stimuli {
     return result;
   }
 
-  List<StimulusPair> generateExperiment(
+  List<StimulusPairTarget> generateExperiment(
       {int n = 88, int nPhono = 16, int nPre = 3}) {
     final int nNonPhono = n - (nPhono * (nPre + 1));
     final List<int> nonPhonoDistribution =
         distributeNonCompetingPairs(nPhono + 1, nNonPhono);
-    final List<StimulusPair> pairs = [];
+    final List<StimulusPairTarget> pairs = [];
     // distribute non-phonological stimuli
 
     for (int i = 0; i < nPhono; i++) {

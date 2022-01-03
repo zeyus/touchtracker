@@ -146,15 +146,18 @@ class ExperimentLog {
   }
 
   void startExperiment() {
+    debugPrint("Experiment started");
     expStopWatch.start();
   }
 
   void endExperiment() {
+    debugPrint("Experiment ended");
     expStopWatch.stop();
     expStopWatch.reset();
   }
 
   void startTrial({int? trial}) {
+    debugPrint("Trial started");
     trialStartTime = DateTime.now();
     trialStopWatch.start();
 
@@ -163,6 +166,7 @@ class ExperimentLog {
   }
 
   void endTrial() {
+    debugPrint("Trial ended");
     trialStopWatch.stop();
     trialStopWatch.reset();
   }
