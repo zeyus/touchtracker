@@ -1,8 +1,10 @@
 import 'dart:collection';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
 import 'package:touchtracker/src/config/firebase_options.dart';
 import 'package:touchtracker/src/widgets/audioprompt.dart';
@@ -16,8 +18,6 @@ import 'package:flutter/services.dart';
 const bool useFirestoreEmulator = true;
 
 Future<void> main() async {
-  final Stimuli _stimuli = Stimuli();
-  final ttBloc = TouchTrackerBloc(stimuli: _stimuli);
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -33,32 +33,65 @@ Future<void> main() async {
     );
   }
   await FirebaseAuth.instance.signInAnonymously();
-  runApp(TouchTrackerApp(bloc: ttBloc));
+  runApp(const TouchTrackerApp());
 }
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
-  final TouchTrackerBloc bloc;
-  const TouchTrackerApp({Key? key, required this.bloc}) : super(key: key);
+  const TouchTrackerApp({Key? key}) : super(key: key);
 
   static const String _title = 'Touch Tracker';
 
   @override
   Widget build(BuildContext context) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    return MaterialApp(
+    return const MaterialApp(
       title: _title,
-      home: TouchTrackerWidget(bloc: bloc),
+      // home: TouchTrackerWidget(bloc: bloc),
+      home: ExperimentStartWidget(),
+    );
+  }
+}
+
+class ExperimentStartWidget extends StatelessWidget {
+  const ExperimentStartWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              'Touch Tracker',
+              style: Theme.of(context).textTheme.headline4,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              child: const Text('Start Experiment'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TouchTrackerWidget()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 /// This is the stateful widget that the main application instantiates.
 class TouchTrackerWidget extends StatefulWidget {
-  late final AudioPrompt _audioPrompt;
-  final TouchTrackerBloc bloc;
-  TouchTrackerWidget({Key? key, required this.bloc}) : super(key: key) {
-    _audioPrompt = AudioPrompt();
+  final Stimuli _stimuli = Stimuli();
+  late final TouchTrackerBloc bloc;
+  // final _audioPrompt = AudioPrompt();
+
+  TouchTrackerWidget({Key? key}) : super(key: key) {
+    bloc = TouchTrackerBloc(stimuli: _stimuli);
   }
 
   @override
@@ -77,12 +110,14 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   bool _overA = false;
   bool _overB = false;
   bool _stimuliVisible = false;
-  bool _promptStarted = false;
+  bool _promptPlaying = false;
   bool _promptFinished = false;
 
   static const double _circleRadius = 20.0;
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
+
+  final AudioPrompt _audioPrompt = AudioPrompt();
 
   final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
   final ExperimentStorageFireBase _logStorage = ExperimentStorageFireBase();
@@ -90,23 +125,17 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   @override
   void initState() {
     super.initState();
-    widget._audioPrompt.setOnPlayStart(() {
-      debugPrint("onPlayStart (main)");
-      setState(() {
-        _promptStarted = true;
-      });
-    });
-    widget._audioPrompt.setOnPlayComplete(() {
-      debugPrint("onPlayComplete (main)");
-      setState(() {
-        _promptFinished = true;
-      });
-    });
     controller.addListener(() {
       setState(() {
         currentPageValue = controller.page!;
       });
     });
+    // _audioPrompt.addListener(() {
+    //   setState(() {
+    //     _promptPlaying = _audioPrompt.playerState == PlayerState.PLAYING;
+    //     _promptFinished = _audioPrompt.playerState == PlayerState.COMPLETED;
+    //   });
+    // });
   }
 
   @override
@@ -134,28 +163,35 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
               }
               totalPages = targets.length.toDouble();
               return PageView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                controller: controller,
-                itemCount: targets.length,
-                itemBuilder: (context, index) {
-                  return _buildStimuli(targets[index]);
-                },
-              );
+                  physics: const NeverScrollableScrollPhysics(),
+                  controller: controller,
+                  itemCount: targets.length,
+                  itemBuilder: (context, index) {
+                    return _buildStimuli(targets[index]);
+                  });
             }));
   }
 
   Widget _buildStimuli(StimulusPairTarget stimuli) {
-    if (!_promptStarted) {
-      widget._audioPrompt.play(stimuli);
-      return const Center(
-        child: Text('...'),
-      );
-    } else if (!_promptFinished) {
-      return const Center(
-        child: Text('......'),
-      );
-    }
+    debugPrint("build triggered for $stimuli");
+    return ChangeNotifierProvider.value(
+      value: _audioPrompt,
+      child: Consumer<AudioPrompt>(
+        builder: (_, audioPrompt, __) {
+          return audioPrompt.playerState == PlayerState.COMPLETED
+              ? _stimuliScreen(stimuli)
+              : _stimuliAudioPrompt(stimuli);
+        },
+      ),
+    );
+  }
 
+  Widget _stimuliAudioPrompt(StimulusPairTarget stimuli) {
+    _audioPrompt.play(stimuli);
+    return const Center(child: Text('...'));
+  }
+
+  Widget _stimuliScreen(StimulusPairTarget stimuli) {
     return Stack(
       key: Key(stimuli.title),
       children: [
@@ -200,12 +236,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   debugPrint("DragCancelled");
                   setState(() => position = offset);
                 },
-                // onDragEnd: (DraggableDetails details) {
-                //   setState(() {
-                //     debugPrint("DragEnd");
-                //     // position = details.offset;
-                //   });
-                // },
               ),
               onTapDown: (details) {
                 _log.startTrial();
@@ -216,16 +246,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
               },
               onTap: () {
                 debugPrint("Circle tap");
-                // show only if there is a next page
-                // if (controller.page! + 1 < totalPages) {
-                //   controller.nextPage(
-                //       duration: const Duration(milliseconds: 1),
-                //       curve: Curves.linear);
-                // } else {
-                //   controller.animateToPage(0,
-                //       duration: const Duration(milliseconds: 1),
-                //       curve: Curves.linear);
-                // }
               },
               onTapUp: (details) {
                 debugPrint("Circle tap up");
@@ -266,7 +286,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   duration: const Duration(milliseconds: 1),
                   curve: Curves.linear);
               setState(() {
-                _promptStarted = false;
+                _promptPlaying = false;
                 _promptFinished = false;
                 _stimuliVisible = false;
               });
@@ -365,9 +385,10 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         _log.debugLog();
                         setState(() {
                           position = null;
-                          _promptStarted = false;
+                          _promptPlaying = false;
                           _promptFinished = false;
                           _stimuliVisible = false;
+                          _audioPrompt.resetState();
                         });
                       },
                     ),

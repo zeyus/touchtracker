@@ -44,6 +44,7 @@ dependencies:
   flutter_svg: ^1.0.0
   rxdart: ^0.27.3
   audioplayers: ^0.20.1
+  provider: ^6.0.2
 
 dev_dependencies:
   flutter_test:

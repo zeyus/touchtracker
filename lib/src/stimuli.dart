@@ -236,6 +236,7 @@ class Stimuli {
         .where((String s) =>
             !_phonologicalPairs.any((StimulusPair p) => p.isMember(s)))
         .toList();
+    nonCompetitorStimuli.shuffle();
     final String a = nonCompetitorStimuli.removeLast();
     final String b = nonCompetitorStimuli.removeLast();
     // if target is null, pick randomly
