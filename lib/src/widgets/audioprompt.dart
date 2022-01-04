@@ -49,14 +49,21 @@ class AudioPrompt with ChangeNotifier {
     const duration = 1000;
     // manually trigger state change
     Future.delayed(Duration(milliseconds: max(duration - diff, 1)), () {
-      stateChangeListener(PlayerState.COMPLETED);
+      if (_playerState != PlayerState.COMPLETED) {
+        stateChangeListener(PlayerState.COMPLETED);
+      }
     });
     return player;
   }
 
   void stateChangeListener(PlayerState state) {
-    _playerState = state;
     debugPrint('StateChangeListener: $state');
+    if (_playerState == state) {
+      debugPrint('no state change, returning');
+      return;
+    }
+    _playerState = state;
+
     if (state == PlayerState.PLAYING) {
       _onPlayStart?.call();
       if (!_onlyNotifyOnComplete) {
