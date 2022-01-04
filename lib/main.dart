@@ -162,7 +162,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   final AudioPrompt _audioPrompt = AudioPrompt();
 
   final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
-  final ExperimentStorageFireBase _logStorage = ExperimentStorageFireBase();
+  final ExperimentStorageCSV _logStorage = ExperimentStorageCSV();
 
   @override
   void initState() {
