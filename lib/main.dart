@@ -186,9 +186,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   final AudioPrompt _audioPrompt = AudioPrompt();
 
-  //final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
-  //final ExperimentStorageCSV _logStorage = ExperimentStorageCSV();
-
   @override
   void initState() {
     super.initState();
@@ -202,12 +199,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
         currentPageValue = controller.page!;
       });
     });
-    // _audioPrompt.addListener(() {
-    //   setState(() {
-    //     _promptPlaying = _audioPrompt.playerState == PlayerState.PLAYING;
-    //     _promptFinished = _audioPrompt.playerState == PlayerState.COMPLETED;
-    //   });
-    // });
   }
 
   @override
@@ -291,7 +282,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                 GestureDetector(
               child: Draggable<bool>(
                 data: true,
-                // dragAnchorStrategy: pointerDragAnchorStrategy,
                 child: const CircleAvatar(
                     radius: _circleRadius,
                     foregroundColor: Colors.black,
@@ -308,9 +298,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   Provider.of<ExperimentLog>(context, listen: false)
                       .startTrial();
 
-                  // Provider.of<ExperimentLog>(context, listen: false)
-                  // .addTrackingEvent(
-                  //     Vector2(d.globalPosition.dx, d.globalPosition.dy));
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .addTrackingEvent(Vector2(position!.dx, position!.dy));
                   setState(() {
                     debugPrint("DragStart");
                     _stimuliVisible = true;
@@ -423,103 +412,3 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
         ));
   }
 }
-
-
-
-
-// Stack(children: [
-//       Row(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           Padding(
-//               padding: const EdgeInsets.all(20),
-//               child: SizedBox(
-//                   width: (MediaQuery.of(context).size.width / 2) - 2 * 20,
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       SizedBox(
-//                           height: 200,
-//                           width: 200,
-//                           child: _stimuli.stimulus('candy')),
-//                     ],
-//                   ))),
-//           Padding(
-//               padding: const EdgeInsets.all(20),
-//               child: SizedBox(
-//                   width: (MediaQuery.of(context).size.width / 2) - 2 * 20,
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.end,
-//                     children: [
-//                       SizedBox(
-//                           height: 200,
-//                           width: 200,
-//                           child: _stimuli.stimulus('candle')),
-//                     ],
-//                   ))),
-//         ],
-//       ),
-//       Row(
-//         children: [
-//           TextButton(
-//             child: const Text('Start'),
-//             onPressed: () {
-//               _log.startTrial();
-//               setState(() {
-//                 _xyStart = '';
-//                 _xyEnd = '';
-//                 _xy = '';
-//                 _vel = '';
-//               });
-//             },
-//           ),
-//           TextButton(
-//             child: const Text('End'),
-//             onPressed: () {
-//               _log.endTrial();
-//               setState(() {
-//                 _xyStart = '';
-//                 _xyEnd = '';
-//                 _xy = '';
-//                 _vel = '';
-//               });
-//             },
-//           ),
-//           TextButton(
-//             child: const Text('Log'),
-//             onPressed: () {
-//               _logStorage.write(_log.logRows, key: "testExp");
-//             },
-//           ),
-//           Text('Start: ' + _xyStart, style: const TextStyle(fontSize: 10)),
-//           Text('Pos: ' + _xy, style: const TextStyle(fontSize: 10)),
-//           Text('End: ' + _xyEnd, style: const TextStyle(fontSize: 10)),
-//           Text('Velocity: ' + _vel, style: const TextStyle(fontSize: 10)),
-//         ],
-//       ),
-//       GestureDetector(onPanStart: (DragStartDetails d) {
-//         setState(() {
-//           _xyStart = _xy = d.globalPosition.dx.round().toString() +
-//               ', ' +
-//               d.globalPosition.dy.round().toString();
-//           _log.addTrackingEvent(
-//               Vector2(d.globalPosition.dx, d.globalPosition.dy));
-//         });
-//       }, onPanUpdate: (DragUpdateDetails d) {
-//         setState(() {
-//           _xy = d.globalPosition.dx.round().toString() +
-//               ', ' +
-//               d.globalPosition.dy.round().toString();
-//           _log.addTrackingEvent(
-//               Vector2(d.globalPosition.dx, d.globalPosition.dy));
-//         });
-//       }, onPanEnd: (DragEndDetails d) {
-//         setState(() {
-//           _xyEnd = _xy;
-//           _vel = d.velocity.toString();
-//           _log.endTrial();
-//           //debug code
-//           _log.debugLog();
-//         });
-//       })
-//     ]);
