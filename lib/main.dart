@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 
@@ -283,19 +284,28 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
                   Provider.of<ExperimentLog>(context, listen: false)
                       .addTrackingEvent(Vector2(position!.dx, position!.dy));
-                  setState(() {
-                    debugPrint("DragStart");
-                    _stimuliVisible = true;
-                  });
+                  debugPrint("DragStart");
                 },
                 onDragUpdate: (DragUpdateDetails d) {
                   Provider.of<ExperimentLog>(context, listen: false)
                       .addTrackingEvent(
                           Vector2(d.globalPosition.dx, d.globalPosition.dy));
+
+                  if (!_stimuliVisible && position != null) {
+                    if (max((d.globalPosition.dx - position!.dx).abs(),
+                            (d.globalPosition.dy - position!.dy).abs()) >
+                        _circleRadius) {
+                      setState(() {
+                        _stimuliVisible = true;
+                      });
+                    }
+                  }
                 },
                 onDraggableCanceled: (Velocity velocity, Offset offset) {
                   debugPrint("DragCancelled");
-                  setState(() => position = offset);
+                  if (_stimuliVisible) {
+                    setState(() => position = offset);
+                  }
                 },
               ),
             ),
@@ -313,9 +323,10 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   }
 
   Widget _buildStimulus(StimulusPairTarget stimuli, Target which) {
-    final String stimulus = which == Target.a ? stimuli.a : stimuli.b;
-    final CrossAxisAlignment alignment =
-        which == Target.a ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+    final String stimulus = stimuli.getTargetStimulus();
+    final CrossAxisAlignment alignment = stimuli.target == Target.a
+        ? CrossAxisAlignment.start
+        : CrossAxisAlignment.end;
     return Padding(
         padding: const EdgeInsets.all(20),
         child: Visibility(
@@ -345,9 +356,12 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                           ),
                         );
                       },
-                      onAccept: (data) {
+                      onWillAccept: (data) {
                         Provider.of<ExperimentLog>(context, listen: false)
                             .endTrial();
+                        Provider.of<AudioPrompt>(context, listen: false)
+                            .resetState();
+
                         if (controller.page! + 1 < totalPages) {
                           controller.nextPage(
                               duration: const Duration(milliseconds: 1),
@@ -356,10 +370,25 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         setState(() {
                           position = null;
                           _stimuliVisible = false;
-                          Provider.of<AudioPrompt>(context, listen: false)
-                              .resetState();
                         });
+
+                        return true;
                       },
+                      // onAccept: (data) {
+                      //   Provider.of<ExperimentLog>(context, listen: false)
+                      //       .endTrial();
+                      //   if (controller.page! + 1 < totalPages) {
+                      //     controller.nextPage(
+                      //         duration: const Duration(milliseconds: 1),
+                      //         curve: Curves.linear);
+                      //   }
+                      //   setState(() {
+                      //     position = null;
+                      //     _stimuliVisible = false;
+                      //     Provider.of<AudioPrompt>(context, listen: false)
+                      //         .resetState();
+                      //   });
+                      // },
                     ),
                   ),
                 ),
