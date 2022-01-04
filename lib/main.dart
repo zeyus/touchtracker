@@ -1,12 +1,13 @@
 import 'dart:collection';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
-import 'package:touchtracker/src/config/firebase_options.dart';
+// import 'package:touchtracker/src/config/firebase_options.dart';
 import 'package:touchtracker/src/widgets/audioprompt.dart';
 import 'package:vector_math/vector_math.dart' hide Colors;
 import 'package:flutter/material.dart';
@@ -22,17 +23,17 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
 
-  if (useFirestoreEmulator) {
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
-    FirebaseFirestore.instance.settings = const Settings(
-        host: 'localhost:8080', sslEnabled: false, persistenceEnabled: false);
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-  await FirebaseAuth.instance.signInAnonymously();
+  // if (useFirestoreEmulator) {
+  //   await Firebase.initializeApp(
+  //       options: DefaultFirebaseOptions.currentPlatform);
+  //   FirebaseFirestore.instance.settings = const Settings(
+  //       host: 'localhost:8080', sslEnabled: false, persistenceEnabled: false);
+  // } else {
+  //   await Firebase.initializeApp(
+  //     options: DefaultFirebaseOptions.currentPlatform,
+  //   );
+  // }
+  // await FirebaseAuth.instance.signInAnonymously();
   runApp(const TouchTrackerApp());
 }
 
