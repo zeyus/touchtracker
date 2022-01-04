@@ -268,12 +268,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
           child: ElevatedButton(
             child: const Text("reset"),
             onPressed: () {
-              controller.animateToPage(0,
-                  duration: const Duration(milliseconds: 1),
-                  curve: Curves.linear);
-              setState(() {
-                _stimuliVisible = false;
-              });
+              Navigator.pop(context);
             },
           ),
         ),
