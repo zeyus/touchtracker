@@ -33,7 +33,7 @@ import 'package:vector_math/vector_math.dart';
 class ExperimentLog {
   // top level (experiment)
   String experiment;
-  String subject;
+  String? subject;
   String? condition;
   DateTime? expStartTime;
   DateTime? expEndTime;
@@ -74,11 +74,8 @@ class ExperimentLog {
   Vector2? posEnd;
   Vector2? pos;
 
-  ExperimentLog(this.experiment, this.subject,
-      {this.condition, DateTime? expStartTime}) {
-    this.expStartTime = expStartTime ?? DateTime.now();
-    _addHeaderRow();
-  }
+  ExperimentLog(this.experiment,
+      {this.condition, DateTime? expStartTime, this.subject});
 
   void _addHeaderRow() {
     List<dynamic> _logRow = [];
@@ -147,6 +144,8 @@ class ExperimentLog {
 
   void startExperiment() {
     debugPrint("Experiment started");
+    expStartTime = expStartTime ?? DateTime.now();
+    _addHeaderRow();
     expStopWatch.start();
   }
 

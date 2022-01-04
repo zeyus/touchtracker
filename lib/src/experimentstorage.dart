@@ -4,8 +4,6 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
-// import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Abstract experiment storage class
 abstract class ExperimentStorage {
@@ -44,39 +42,6 @@ class ExperimentStorageCSV extends ExperimentStorage {
     FileMode _fileMode = update ? FileMode.write : FileMode.append;
     file.writeAsString(const ListToCsvConverter().convert(data),
         mode: _fileMode);
-
-    return true;
-  }
-}
-
-class ExperimentStorageFireBase extends ExperimentStorage {
-  // write subject log to firebase
-  @override
-  Future<bool> write(List<List<dynamic>> data,
-      {key = '', update = false}) async {
-    CollectionReference experiments =
-        FirebaseFirestore.instance.collection('experiments');
-
-    QuerySnapshot existingExp =
-        await experiments.where('experiment_id', isEqualTo: key).get();
-
-    DocumentReference? expRef;
-
-    if (existingExp.size == 0) {
-      expRef = await experiments.add({'experiment_id': key});
-    } else {
-      expRef = experiments.doc(existingExp.docs.first.id);
-    }
-
-    // loop through data and add to firebase
-    List<String> columnLabels =
-        data.removeAt(0).map((item) => item as String).toList();
-    for (List<dynamic> row in data) {
-      // map columnlabels to rows
-      Map<String, dynamic> rowMap =
-          Map<String, dynamic>.fromIterables(columnLabels, row);
-      await expRef.collection('tracking_item').add(rowMap);
-    }
 
     return true;
   }

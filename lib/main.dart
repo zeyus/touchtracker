@@ -46,10 +46,12 @@ class TouchTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    return const MaterialApp(
-      title: _title,
-      // home: TouchTrackerWidget(bloc: bloc),
-      home: ExperimentStartWidget(),
+    return MultiProvider(
+      providers: [
+        Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
+        Provider<ExperimentStorageCSV>(create: (_) => ExperimentStorageCSV()),
+      ],
+      child: const MaterialApp(title: _title, home: ExperimentStartWidget()),
     );
   }
 }
@@ -61,15 +63,8 @@ class ExperimentStartWidget extends StatefulWidget {
 }
 
 class _ExperimentStartWidget extends State<ExperimentStartWidget> {
+  final _formKey = GlobalKey<FormState>();
   final participantController = TextEditingController();
-
-  bool _submit() {
-    final participant = participantController.text;
-    if (participant.isEmpty) {
-      return false;
-    }
-    return true;
-  }
 
   @override
   void dispose() {
@@ -83,6 +78,7 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
     return Scaffold(
       body: Center(
         child: Form(
+          key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -90,32 +86,61 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                 'Touch Tracker',
                 style: Theme.of(context).textTheme.headline4,
               ),
-              TextFormField(
-                controller: participantController,
-                decoration: const InputDecoration(
-                  labelText: "Participant ID",
+              SizedBox(
+                width: 250,
+                child: TextFormField(
+                  controller: participantController,
+                  decoration: const InputDecoration(
+                    labelText: "Participant ID",
+                  ),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return "Participant ID cannot be empty";
+                    } else {
+                      return null;
+                    }
+                  },
+                  keyboardType: TextInputType.name,
                 ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return "Participant ID cannot be empty";
-                  } else {
-                    return null;
-                  }
-                },
-                keyboardType: TextInputType.name,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 50),
               ElevatedButton(
                 child: const Text('Start Experiment'),
                 onPressed: () {
-                  if (!_submit()) {
-                    return;
+                  final participant = participantController.text;
+                  if (_formKey.currentState != null &&
+                      _formKey.currentState!.validate()) {
+                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                    debugPrint("adding participant $participant");
+                    Provider.of<ExperimentLog>(context, listen: false).subject =
+                        participant;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MultiProvider(providers: [
+                                Provider<ExperimentLog>.value(
+                                    value: Provider.of<ExperimentLog>(context,
+                                        listen: false)),
+                                Provider<ExperimentStorageCSV>.value(
+                                    value: Provider.of<ExperimentStorageCSV>(
+                                        context,
+                                        listen: false)),
+                              ], child: TouchTrackerWidget())),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showMaterialBanner(
+                      MaterialBanner(
+                        content: const Text('Please enter a participant ID'),
+                        actions: [
+                          TextButton(
+                            child: const Text('OK'),
+                            onPressed: () => ScaffoldMessenger.of(context)
+                                .hideCurrentMaterialBanner(),
+                          )
+                        ],
+                      ),
+                    );
                   }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TouchTrackerWidget()),
-                  );
                 },
               ),
             ],
@@ -161,12 +186,17 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   final AudioPrompt _audioPrompt = AudioPrompt();
 
-  final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
-  final ExperimentStorageCSV _logStorage = ExperimentStorageCSV();
+  //final ExperimentLog _log = ExperimentLog("testExp", "testSubj");
+  //final ExperimentStorageCSV _logStorage = ExperimentStorageCSV();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      debugPrint("Starting experiment log...");
+      Provider.of<ExperimentLog>(context, listen: false).startExperiment();
+    });
+
     controller.addListener(() {
       setState(() {
         currentPageValue = controller.page!;
@@ -189,8 +219,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    _log.startExperiment();
-    _log.startTrial();
+    // Provider.of<ExperimentLog>(context).startTrial();
 
     position = position ??
         Offset(MediaQuery.of(context).size.width / 2 - _circleRadius,
@@ -276,32 +305,27 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                     foregroundColor: Colors.grey,
                     backgroundColor: Colors.grey),
                 onDragStarted: () {
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .startTrial();
+
+                  // Provider.of<ExperimentLog>(context, listen: false)
+                  // .addTrackingEvent(
+                  //     Vector2(d.globalPosition.dx, d.globalPosition.dy));
                   setState(() {
                     debugPrint("DragStart");
                     _stimuliVisible = true;
                   });
+                },
+                onDragUpdate: (DragUpdateDetails d) {
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .addTrackingEvent(
+                          Vector2(d.globalPosition.dx, d.globalPosition.dy));
                 },
                 onDraggableCanceled: (Velocity velocity, Offset offset) {
                   debugPrint("DragCancelled");
                   setState(() => position = offset);
                 },
               ),
-              onTapDown: (details) {
-                _log.startTrial();
-                setState(() {
-                  debugPrint("Circle tap down");
-                  _stimuliVisible = true;
-                });
-              },
-              onTap: () {
-                debugPrint("Circle tap");
-              },
-              onTapUp: (details) {
-                debugPrint("Circle tap up");
-                setState(() {
-                  _stimuliVisible = false;
-                });
-              },
             ),
           ),
         ),
@@ -337,36 +361,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             },
           ),
         ),
-        GestureDetector(onPanStart: (DragStartDetails d) {
-          debugPrint("Generic pan start");
-          if (_stimuliVisible) {
-            setState(() {
-              _xyStart = _xy = d.globalPosition.dx.round().toString() +
-                  ', ' +
-                  d.globalPosition.dy.round().toString();
-              _log.addTrackingEvent(
-                  Vector2(d.globalPosition.dx, d.globalPosition.dy));
-            });
-          }
-        }, onPanUpdate: (DragUpdateDetails d) {
-          if (_stimuliVisible) {
-            setState(() {
-              _xy = d.globalPosition.dx.round().toString() +
-                  ', ' +
-                  d.globalPosition.dy.round().toString();
-              _log.addTrackingEvent(
-                  Vector2(d.globalPosition.dx, d.globalPosition.dy));
-            });
-          }
-        }, onPanEnd: (DragEndDetails d) {
-          debugPrint("Generic pan end");
-          if (_stimuliVisible) {
-            setState(() {
-              _xyEnd = _xy;
-              _vel = d.velocity.toString();
-            });
-          }
-        })
       ],
     );
   }
@@ -395,21 +389,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                       border: Border.all(color: Colors.black, width: 1),
                     ),
                     child: DragTarget(
-                      onMove: (DragTargetDetails<Object> details) {
-                        debugPrint(
-                            "Target $which (${which == stimuli.target ? 'correct' : 'incorrect'}) hovered");
-                        setState(() {
-                          _overA = which == Target.a;
-                          _overB = which == Target.b;
-                        });
-                      },
-                      onLeave: (Object? details) {
-                        debugPrint("Target $which hover exit");
-                        setState(() {
-                          _overA = false;
-                          _overB = false;
-                        });
-                      },
                       builder: (context, candidateData, rejectedData) {
                         return Center(
                           child: SizedBox(
@@ -420,13 +399,13 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         );
                       },
                       onAccept: (data) {
-                        _log.endTrial();
+                        Provider.of<ExperimentLog>(context, listen: false)
+                            .endTrial();
                         if (controller.page! + 1 < totalPages) {
                           controller.nextPage(
                               duration: const Duration(milliseconds: 1),
                               curve: Curves.linear);
                         }
-                        _log.debugLog();
                         setState(() {
                           position = null;
                           _promptPlaying = false;
