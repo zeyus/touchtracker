@@ -12,11 +12,13 @@ import 'package:touchtracker/src/experimentlog.dart';
 import 'package:touchtracker/src/stimuli.dart';
 import 'package:touchtracker/src/touchtracker_bloc.dart';
 import 'package:flutter/services.dart';
+import 'package:wakelock/wakelock.dart';
 
 const bool useFirestoreEmulator = true;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Wakelock.enable();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   runApp(const TouchTrackerApp());
@@ -35,6 +37,7 @@ class TouchTrackerApp extends StatelessWidget {
       providers: [
         Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
         Provider<ExperimentStorageCSV>(create: (_) => ExperimentStorageCSV()),
+        ChangeNotifierProvider<AudioPrompt>(create: (_) => AudioPrompt()),
       ],
       child: const MaterialApp(title: _title, home: ExperimentStartWidget()),
     );
@@ -110,6 +113,9 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                                     value: Provider.of<ExperimentStorageCSV>(
                                         context,
                                         listen: false)),
+                                ChangeNotifierProvider<AudioPrompt>.value(
+                                    value: Provider.of<AudioPrompt>(context,
+                                        listen: false)),
                               ], child: TouchTrackerWidget())),
                     );
                   } else {
@@ -157,11 +163,11 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   Offset? position;
   bool _stimuliVisible = false;
 
-  static const double _circleRadius = 20.0;
+  static const double _circleRadius = 40.0;
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
 
-  final AudioPrompt _audioPrompt = AudioPrompt();
+  //final AudioPrompt _audioPrompt = AudioPrompt();
 
   @override
   void initState() {
@@ -221,7 +227,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   Widget _buildStimuli(StimulusPairTarget stimuli) {
     debugPrint("build triggered for $stimuli");
     return ChangeNotifierProvider.value(
-      value: _audioPrompt,
+      value: Provider.of<AudioPrompt>(context),
       child: Consumer<AudioPrompt>(
         builder: (_, audioPrompt, __) {
           return audioPrompt.playerState == PlayerState.COMPLETED
@@ -233,7 +239,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   }
 
   Widget _stimuliAudioPrompt(StimulusPairTarget stimuli) {
-    _audioPrompt.play(stimuli);
+    Provider.of<AudioPrompt>(context, listen: false).play(stimuli);
     return const Center(child: Text('...'));
   }
 
@@ -350,7 +356,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         setState(() {
                           position = null;
                           _stimuliVisible = false;
-                          _audioPrompt.resetState();
+                          Provider.of<AudioPrompt>(context, listen: false)
+                              .resetState();
                         });
                       },
                     ),
