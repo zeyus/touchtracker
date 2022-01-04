@@ -37,11 +37,11 @@ dependencies:
   csv: ^5.0.0
   path_provider: ^2.0.6
   vector_math: ^2.1.1
-  firebase_core: ^1.10.6
-  cloud_firestore: ^3.1.5
-  firebase_storage: ^10.2.4
-  firebase_auth: ^3.3.4
-  flutter_svg: ^1.0.0
+  # firebase_core: ^1.10.6
+  # cloud_firestore: ^3.1.5
+  # firebase_storage: ^10.2.4
+  # firebase_auth: ^3.3.4
+  # flutter_svg: ^1.0.0
   rxdart: ^0.27.3
   audioplayers: ^0.20.1
   provider: ^6.0.2

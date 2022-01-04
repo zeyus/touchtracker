@@ -37,18 +37,21 @@ class AudioPrompt with ChangeNotifier {
     String filename = '$assetPath$target$fileExtension';
     debugPrint("playing $filename for $prompt");
     // await audioCache.play(filename);
-    return await audioCache.play(filename);
-  }
-
-  // maybe keep for future implementation for web
-  Future<void> playHack(StimulusPairTarget prompt) async {
+    if (!kIsWeb) {
+      return await audioCache.play(filename);
+    }
+    debugPrint("web hack");
+    // dirty web hack
     int currentTime = DateTime.now().millisecondsSinceEpoch;
-    AudioPlayer player = await play(prompt);
+    AudioPlayer player = await audioCache.play(filename);
     int diff = DateTime.now().millisecondsSinceEpoch - currentTime;
-    int duration = await player.getDuration();
-    debugPrint("$diff vs $duration");
-    Future.delayed(
-        Duration(milliseconds: max(duration - diff, 1)), _onPlayComplete);
+    // getduration fails on web. max is 1 second, so we use that.
+    const duration = 1000;
+    // manually trigger state change
+    Future.delayed(Duration(milliseconds: max(duration - diff, 1)), () {
+      stateChangeListener(PlayerState.COMPLETED);
+    });
+    return player;
   }
 
   void stateChangeListener(PlayerState state) {

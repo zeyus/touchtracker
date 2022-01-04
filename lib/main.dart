@@ -54,31 +54,72 @@ class TouchTrackerApp extends StatelessWidget {
   }
 }
 
-class ExperimentStartWidget extends StatelessWidget {
+class ExperimentStartWidget extends StatefulWidget {
   const ExperimentStartWidget({Key? key}) : super(key: key);
+  @override
+  _ExperimentStartWidget createState() => _ExperimentStartWidget();
+}
+
+class _ExperimentStartWidget extends State<ExperimentStartWidget> {
+  final participantController = TextEditingController();
+
+  bool _submit() {
+    final participant = participantController.text;
+    if (participant.isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is disposed.
+    participantController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Touch Tracker',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              child: const Text('Start Experiment'),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TouchTrackerWidget()),
-                );
-              },
-            ),
-          ],
+        child: Form(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                'Touch Tracker',
+                style: Theme.of(context).textTheme.headline4,
+              ),
+              TextFormField(
+                controller: participantController,
+                decoration: const InputDecoration(
+                  labelText: "Participant ID",
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return "Participant ID cannot be empty";
+                  } else {
+                    return null;
+                  }
+                },
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                child: const Text('Start Experiment'),
+                onPressed: () {
+                  if (!_submit()) {
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TouchTrackerWidget()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -137,6 +178,13 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
     //     _promptFinished = _audioPrompt.playerState == PlayerState.COMPLETED;
     //   });
     // });
+  }
+
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is disposed.
+    controller.dispose();
+    super.dispose();
   }
 
   @override
