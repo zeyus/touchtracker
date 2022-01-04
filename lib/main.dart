@@ -1,13 +1,10 @@
 import 'dart:collection';
 
 import 'package:audioplayers/audioplayers.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
 
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
-// import 'package:touchtracker/src/config/firebase_options.dart';
+
 import 'package:touchtracker/src/widgets/audioprompt.dart';
 import 'package:vector_math/vector_math.dart' hide Colors;
 import 'package:flutter/material.dart';
@@ -22,18 +19,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-
-  // if (useFirestoreEmulator) {
-  //   await Firebase.initializeApp(
-  //       options: DefaultFirebaseOptions.currentPlatform);
-  //   FirebaseFirestore.instance.settings = const Settings(
-  //       host: 'localhost:8080', sslEnabled: false, persistenceEnabled: false);
-  // } else {
-  //   await Firebase.initializeApp(
-  //     options: DefaultFirebaseOptions.currentPlatform,
-  //   );
-  // }
-  // await FirebaseAuth.instance.signInAnonymously();
   runApp(const TouchTrackerApp());
 }
 
@@ -167,18 +152,10 @@ class TouchTrackerWidget extends StatefulWidget {
 
 /// This is the private State class that goes with TouchTrackerWidget.
 class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
-  String _xyStart = '';
-  String _xyEnd = '';
-  String _xy = '';
-  String _vel = '';
   var currentPageValue = 0.0;
   var totalPages = 0.0;
   Offset? position;
-  bool _overA = false;
-  bool _overB = false;
   bool _stimuliVisible = false;
-  bool _promptPlaying = false;
-  bool _promptFinished = false;
 
   static const double _circleRadius = 20.0;
   PageController controller =
@@ -325,31 +302,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             style: const TextStyle(fontSize: 20),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: ElevatedButton(
-            child: const Text("reset"),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: ElevatedButton(
-            child: const Text("last"),
-            onPressed: () {
-              controller.animateToPage(totalPages.toInt(),
-                  duration: const Duration(milliseconds: 1),
-                  curve: Curves.linear);
-              setState(() {
-                _promptPlaying = false;
-                _promptFinished = false;
-                _stimuliVisible = false;
-              });
-            },
-          ),
-        ),
       ],
     );
   }
@@ -397,8 +349,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         }
                         setState(() {
                           position = null;
-                          _promptPlaying = false;
-                          _promptFinished = false;
                           _stimuliVisible = false;
                           _audioPrompt.resetState();
                         });
