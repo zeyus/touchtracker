@@ -173,6 +173,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
       Provider.of<ExperimentLog>(context, listen: false).startExperiment();
@@ -292,9 +293,11 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                           Vector2(d.globalPosition.dx, d.globalPosition.dy));
 
                   if (!_stimuliVisible && position != null) {
-                    if (max((d.globalPosition.dx - position!.dx).abs(),
-                            (d.globalPosition.dy - position!.dy).abs()) >
-                        _circleRadius) {
+                    // debugPrint(
+                    //     "position: ${position!.dx}, ${position!.dy}, d.globalPosition: ${d.globalPosition.dx}, ${d.globalPosition.dy}, d.localPosition: ${d.localPosition.dx}, ${d.localPosition.dy}");
+                    if (max((d.localPosition.dx - position!.dx).abs(),
+                            (d.localPosition.dy - position!.dy).abs()) >
+                        _circleRadius * 1.5) {
                       setState(() {
                         _stimuliVisible = true;
                       });
@@ -323,10 +326,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   }
 
   Widget _buildStimulus(StimulusPairTarget stimuli, Target which) {
-    final String stimulus = stimuli.getTargetStimulus();
-    final CrossAxisAlignment alignment = stimuli.target == Target.a
-        ? CrossAxisAlignment.start
-        : CrossAxisAlignment.end;
+    final String stimulus = stimuli.getFromTarget(which);
+    final CrossAxisAlignment alignment =
+        which == Target.a ? CrossAxisAlignment.start : CrossAxisAlignment.end;
     return Padding(
         padding: const EdgeInsets.all(20),
         child: Visibility(
