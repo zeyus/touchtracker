@@ -15,8 +15,6 @@ import 'package:touchtracker/src/touchtracker_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock/wakelock.dart';
 
-const bool useFirestoreEmulator = true;
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Wakelock.enable();
@@ -37,7 +35,7 @@ class TouchTrackerApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
-        Provider<ExperimentStorageCSV>(create: (_) => ExperimentStorageCSV()),
+        Provider<ExperimentStorage>(create: (_) => getStorage()),
         ChangeNotifierProvider<AudioPrompt>(create: (_) => AudioPrompt()),
       ],
       child: const MaterialApp(title: _title, home: ExperimentStartWidget()),
@@ -110,8 +108,8 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                                 Provider<ExperimentLog>.value(
                                     value: Provider.of<ExperimentLog>(context,
                                         listen: false)),
-                                Provider<ExperimentStorageCSV>.value(
-                                    value: Provider.of<ExperimentStorageCSV>(
+                                Provider<ExperimentStorage>.value(
+                                    value: Provider.of<ExperimentStorage>(
                                         context,
                                         listen: false)),
                                 ChangeNotifierProvider<AudioPrompt>.value(
@@ -176,7 +174,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
-      Provider.of<ExperimentLog>(context, listen: false).startExperiment();
+      Provider.of<ExperimentLog>(context, listen: false).startExperiment(
+          Provider.of<ExperimentStorage>(context, listen: false));
     });
 
     controller.addListener(() {
@@ -359,6 +358,12 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         );
                       },
                       onWillAccept: (data) {
+                        bool isCorrect = false;
+                        if (stimulus == stimuli.getTargetStimulus()) {
+                          isCorrect = true;
+                        }
+                        Provider.of<ExperimentLog>(context, listen: false)
+                            .correct = isCorrect;
                         Provider.of<ExperimentLog>(context, listen: false)
                             .endTrial();
                         Provider.of<AudioPrompt>(context, listen: false)
@@ -376,21 +381,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
                         return true;
                       },
-                      // onAccept: (data) {
-                      //   Provider.of<ExperimentLog>(context, listen: false)
-                      //       .endTrial();
-                      //   if (controller.page! + 1 < totalPages) {
-                      //     controller.nextPage(
-                      //         duration: const Duration(milliseconds: 1),
-                      //         curve: Curves.linear);
-                      //   }
-                      //   setState(() {
-                      //     position = null;
-                      //     _stimuliVisible = false;
-                      //     Provider.of<AudioPrompt>(context, listen: false)
-                      //         .resetState();
-                      //   });
-                      // },
                     ),
                   ),
                 ),

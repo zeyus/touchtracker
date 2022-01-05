@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:touchtracker/src/experimentstorage.dart';
 import 'package:vector_math/vector_math.dart';
 
 // "acc","accuracy","average_response_time","avg_rt","background","bidi",
@@ -30,6 +31,9 @@ import 'package:vector_math/vector_math.dart';
 
 /// ExperimentLog is used for keeping a log of pointer tracking data
 /// for later writing to a file.
+///
+
+// requires ExperimentStorage compatible storage backend
 class ExperimentLog {
   // top level (experiment)
   String experiment;
@@ -38,6 +42,7 @@ class ExperimentLog {
   DateTime? expStartTime;
   DateTime? expEndTime;
   int? expElapsedTimeMicros;
+  ExperimentStorage? storage;
 
   // trial level
   int trial = 0;
@@ -52,6 +57,7 @@ class ExperimentLog {
   double? xEnd;
   double? yEnd;
   double? avgVel;
+  List<double> trialVelocities = [];
 
   bool? correct;
 
@@ -142,7 +148,16 @@ class ExperimentLog {
     _logRows.add(_logRow);
   }
 
-  void startExperiment() {
+  void startExperiment(ExperimentStorage storage,
+      {String? subject, String? condition}) {
+    this.storage = storage;
+    if (subject != null) {
+      this.subject = subject;
+    }
+    if (condition != null) {
+      this.condition = condition;
+    }
+    this.storage?.key = experiment + '-' + this.subject!;
     debugPrint("Experiment started");
     expStartTime = expStartTime ?? DateTime.now();
     _addHeaderRow();
@@ -167,7 +182,23 @@ class ExperimentLog {
   void endTrial() {
     debugPrint("Trial ended");
     trialStopWatch.stop();
+    trialEndTime = DateTime.now();
+    xEnd = xPos;
+    yEnd = yPos;
+    addNonTrackingEvent();
+    trialEndTime = null;
+    xEnd = null;
+    yEnd = null;
+    trialSequence = 0;
+    flushLog();
+    correct = null;
     trialStopWatch.reset();
+  }
+
+  double trialVelocityAverage() {
+    int n = trialVelocities.length;
+
+    return n > 0 ? trialVelocities.reduce((a, b) => a + b) / n : 0;
   }
 
   void addTrackingEvent(Vector2 pos) {
@@ -177,16 +208,20 @@ class ExperimentLog {
 
     if (trialSequence == 0) {
       posStart = pos;
-      xStart = xPos;
-      yStart = yPos;
+      xStart = pos.x;
+      yStart = pos.y;
       stepAngle = null;
       stepVel = 0.0;
+      avgVel = 0.0;
       stepDistance = 0.0;
+      trialVelocities = [];
     } else {
       final int stepTime = trialElapsedTimeMicros! - prevStepTime;
       stepAngle = degrees(this.pos!.angleTo(pos));
       stepDistance = this.pos!.distanceTo(pos);
       stepVel = stepDistance! / stepTime;
+      trialVelocities.add(stepVel!);
+      avgVel = trialVelocityAverage();
     }
 
     trialSequence += 1;
@@ -198,10 +233,31 @@ class ExperimentLog {
     _addRow();
   }
 
+  void addNonTrackingEvent() {
+    stepAngle = null;
+    stepVel = 0.0;
+    stepDistance = 0.0;
+    xStart = xPos;
+    yStart = yPos;
+    _addRow();
+  }
+
   void debugLog() {
     if (kDebugMode) {
       print(_logRows.toString());
     }
+  }
+
+  void flushLog({bool addHeader = false}) {
+    storage?.write(_logRows);
+    _logRows.clear();
+    if (addHeader) {
+      _addHeaderRow();
+    }
+  }
+
+  void writeLog() {
+    storage?.write(_logRows);
   }
 
   // _logrows getter
