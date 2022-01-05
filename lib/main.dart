@@ -61,83 +61,92 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                'Touch Tracker',
-                style: Theme.of(context).textTheme.headline4,
-              ),
-              SizedBox(
-                width: 250,
-                child: TextFormField(
-                  controller: participantController,
-                  decoration: const InputDecoration(
-                    labelText: "Participant ID",
+    return GestureDetector(
+      onTap: () {
+        FocusScopeNode currentFocus = FocusScope.of(context);
+
+        if (!currentFocus.hasPrimaryFocus) {
+          currentFocus.unfocus();
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+        }
+      },
+      child: Scaffold(
+        body: Center(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Touch Tracker',
+                  style: Theme.of(context).textTheme.headline4,
+                ),
+                SizedBox(
+                  width: 250,
+                  child: TextFormField(
+                    controller: participantController,
+                    decoration: const InputDecoration(
+                      labelText: "Participant ID",
+                    ),
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return "Participant ID cannot be empty";
+                      } else {
+                        return null;
+                      }
+                    },
+                    keyboardType: TextInputType.name,
                   ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return "Participant ID cannot be empty";
+                ),
+                const SizedBox(height: 50),
+                ElevatedButton(
+                  child: const Text('Start Experiment'),
+                  onPressed: () {
+                    final participant = participantController.text;
+                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner(
+                        reason: MaterialBannerClosedReason.dismiss);
+                    if (_formKey.currentState != null &&
+                        _formKey.currentState!.validate()) {
+                      debugPrint("adding participant $participant");
+                      Provider.of<ExperimentLog>(context, listen: false)
+                          .subject = participant;
+                      SystemChrome.setEnabledSystemUIMode(
+                          SystemUiMode.immersive);
+                      participantController.clear();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MultiProvider(providers: [
+                                  Provider<ExperimentLog>.value(
+                                      value: Provider.of<ExperimentLog>(context,
+                                          listen: false)),
+                                  Provider<ExperimentStorage>.value(
+                                      value: Provider.of<ExperimentStorage>(
+                                          context,
+                                          listen: false)),
+                                  ChangeNotifierProvider<AudioPrompt>.value(
+                                      value: Provider.of<AudioPrompt>(context,
+                                          listen: false)),
+                                ], child: TouchTrackerWidget())),
+                      );
                     } else {
-                      return null;
+                      ScaffoldMessenger.of(context).showMaterialBanner(
+                        MaterialBanner(
+                          content: const Text('Please enter a participant ID'),
+                          actions: [
+                            TextButton(
+                              child: const Text('OK'),
+                              onPressed: () => ScaffoldMessenger.of(context)
+                                  .hideCurrentMaterialBanner(),
+                            )
+                          ],
+                        ),
+                      );
                     }
                   },
-                  onEditingComplete: () => SystemChrome.setEnabledSystemUIMode(
-                      SystemUiMode.immersive),
-                  keyboardType: TextInputType.name,
                 ),
-              ),
-              const SizedBox(height: 50),
-              ElevatedButton(
-                child: const Text('Start Experiment'),
-                onPressed: () {
-                  final participant = participantController.text;
-                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner(
-                      reason: MaterialBannerClosedReason.dismiss);
-                  if (_formKey.currentState != null &&
-                      _formKey.currentState!.validate()) {
-                    debugPrint("adding participant $participant");
-                    Provider.of<ExperimentLog>(context, listen: false).subject =
-                        participant;
-                    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-                    participantController.clear();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => MultiProvider(providers: [
-                                Provider<ExperimentLog>.value(
-                                    value: Provider.of<ExperimentLog>(context,
-                                        listen: false)),
-                                Provider<ExperimentStorage>.value(
-                                    value: Provider.of<ExperimentStorage>(
-                                        context,
-                                        listen: false)),
-                                ChangeNotifierProvider<AudioPrompt>.value(
-                                    value: Provider.of<AudioPrompt>(context,
-                                        listen: false)),
-                              ], child: TouchTrackerWidget())),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showMaterialBanner(
-                      MaterialBanner(
-                        content: const Text('Please enter a participant ID'),
-                        actions: [
-                          TextButton(
-                            child: const Text('OK'),
-                            onPressed: () => ScaffoldMessenger.of(context)
-                                .hideCurrentMaterialBanner(),
-                          )
-                        ],
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
