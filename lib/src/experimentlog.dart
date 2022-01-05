@@ -186,11 +186,12 @@ class ExperimentLog {
     xEnd = xPos;
     yEnd = yPos;
     addNonTrackingEvent();
+    flushLog();
     trialEndTime = null;
     xEnd = null;
     yEnd = null;
     trialSequence = 0;
-    flushLog();
+
     correct = null;
     trialStopWatch.reset();
   }
@@ -248,16 +249,16 @@ class ExperimentLog {
     }
   }
 
-  void flushLog({bool addHeader = false}) {
-    storage?.flush(_logRows);
+  Future<void> flushLog({bool addHeader = false}) async {
+    await storage?.flush(_logRows);
     _logRows.clear();
     if (addHeader) {
       _addHeaderRow();
     }
   }
 
-  void writeLog() {
-    storage?.write(_logRows);
+  Future<void> writeLog() async {
+    await storage?.write(_logRows);
   }
 
   // _logrows getter
