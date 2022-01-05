@@ -35,7 +35,7 @@ class ExperimentStorageCSV extends ExperimentStorage {
   String _getFilename(String key) {
     DateTime curDate = DateTime.now();
     String filename =
-        '${curDate.year}-${curDate.month}-${curDate.day}_${replaceInvalidChars(key)}.csv';
+        '${curDate.year}-${curDate.month.toString().padLeft(2, "0")}-${curDate.day.toString().padLeft(2, "0")}_${replaceInvalidChars(key)}.csv';
     return filename;
   }
 

@@ -249,7 +249,7 @@ class ExperimentLog {
   }
 
   void flushLog({bool addHeader = false}) {
-    storage?.write(_logRows);
+    storage?.flush(_logRows);
     _logRows.clear();
     if (addHeader) {
       _addHeaderRow();
