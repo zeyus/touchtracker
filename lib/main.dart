@@ -31,7 +31,6 @@ class TouchTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return MultiProvider(
       providers: [
         Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
@@ -87,6 +86,8 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                       return null;
                     }
                   },
+                  onEditingComplete: () => SystemChrome.setEnabledSystemUIMode(
+                      SystemUiMode.immersive),
                   keyboardType: TextInputType.name,
                 ),
               ),
@@ -95,12 +96,15 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                 child: const Text('Start Experiment'),
                 onPressed: () {
                   final participant = participantController.text;
+                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner(
+                      reason: MaterialBannerClosedReason.dismiss);
                   if (_formKey.currentState != null &&
                       _formKey.currentState!.validate()) {
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
                     debugPrint("adding participant $participant");
                     Provider.of<ExperimentLog>(context, listen: false).subject =
                         participant;
+                    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+                    participantController.clear();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -320,6 +324,40 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             style: const TextStyle(fontSize: 20),
           ),
         ),
+        Align(
+          alignment: Alignment.bottomLeft,
+          child: ElevatedButton(
+            child: const Text("Back to Home"),
+            onPressed: () {
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+              Navigator.pop(context);
+            },
+          ),
+        ),
+        Align(
+          alignment: Alignment.bottomRight,
+          child: ElevatedButton(
+            child: const Text("Thank you page"),
+            onPressed: () {
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => MultiProvider(providers: [
+                          Provider<ExperimentLog>.value(
+                              value: Provider.of<ExperimentLog>(context,
+                                  listen: false)),
+                          Provider<ExperimentStorage>.value(
+                              value: Provider.of<ExperimentStorage>(context,
+                                  listen: false)),
+                          ChangeNotifierProvider<AudioPrompt>.value(
+                              value: Provider.of<AudioPrompt>(context,
+                                  listen: false)),
+                        ], child: const ThankYouWidget())),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
@@ -368,11 +406,31 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                             .endTrial();
                         Provider.of<AudioPrompt>(context, listen: false)
                             .resetState();
-
+                        SystemChrome.setEnabledSystemUIMode(
+                            SystemUiMode.immersive);
                         if (controller.page! + 1 < totalPages) {
                           controller.nextPage(
                               duration: const Duration(milliseconds: 1),
                               curve: Curves.linear);
+                        } else {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => MultiProvider(providers: [
+                                      Provider<ExperimentLog>.value(
+                                          value: Provider.of<ExperimentLog>(
+                                              context,
+                                              listen: false)),
+                                      Provider<ExperimentStorage>.value(
+                                          value: Provider.of<ExperimentStorage>(
+                                              context,
+                                              listen: false)),
+                                      ChangeNotifierProvider<AudioPrompt>.value(
+                                          value: Provider.of<AudioPrompt>(
+                                              context,
+                                              listen: false)),
+                                    ], child: const ThankYouWidget())),
+                          );
                         }
                         setState(() {
                           position = null;
@@ -388,5 +446,34 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             ),
           ),
         ));
+  }
+}
+
+// thank you page widget
+class ThankYouWidget extends StatelessWidget {
+  const ThankYouWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Thank you for participating!",
+              style: TextStyle(fontSize: 30),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              child: const Text("Back to Home"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
