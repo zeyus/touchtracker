@@ -51,8 +51,8 @@ class ExperimentStorageCSV extends ExperimentStorage {
 
     final file = await _localFile(filename);
 
-    FileMode _fileMode = update ? FileMode.write : FileMode.append;
-    file.writeAsString(const ListToCsvConverter().convert(data),
+    FileMode _fileMode = update ? FileMode.append : FileMode.write;
+    await file.writeAsString(const ListToCsvConverter().convert(data),
         mode: _fileMode, flush: true);
 
     return true;
@@ -60,7 +60,7 @@ class ExperimentStorageCSV extends ExperimentStorage {
 
   @override
   Future<void> flush(List<List<dynamic>> data, {key = ''}) async {
-    write(data, key: key, update: true);
+    await write(data, key: key, update: true);
   }
 }
 
