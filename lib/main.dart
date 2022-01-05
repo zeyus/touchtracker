@@ -338,6 +338,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
           child: ElevatedButton(
             child: const Text("Back to Home"),
             onPressed: () {
+              Provider.of<ExperimentLog>(context, listen: false).endTrial();
+              Provider.of<ExperimentLog>(context, listen: false)
+                  .endExperiment();
               SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
               Navigator.pop(context);
             },
@@ -349,6 +352,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
             child: const Text("Thank you page"),
             onPressed: () {
               SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+              Provider.of<ExperimentLog>(context, listen: false).endTrial();
+              Provider.of<ExperimentLog>(context, listen: false)
+                  .endExperiment();
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -422,6 +428,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                               duration: const Duration(milliseconds: 1),
                               curve: Curves.linear);
                         } else {
+                          Provider.of<ExperimentLog>(context, listen: false)
+                              .endExperiment();
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(

@@ -33,6 +33,10 @@ import 'package:vector_math/vector_math.dart';
 /// for later writing to a file.
 ///
 
+// @TODO: Remove math logic and decouple as much as possible.
+// maybe define structure using map?
+// fix variable scope (only a few need public).
+
 // requires ExperimentStorage compatible storage backend
 class ExperimentLog {
   // top level (experiment)
@@ -148,8 +152,23 @@ class ExperimentLog {
     _logRows.add(_logRow);
   }
 
+  // @TODO: Implement
+  // ignore: unused_element
+  void _trialReset() {
+    throw UnimplementedError();
+  }
+
+  // @TODO: Implement
+  // ignore: unused_element
+  void _experimentReset() {
+    throw UnimplementedError();
+  }
+
   void startExperiment(ExperimentStorage storage,
       {String? subject, String? condition}) {
+    logSequence = 0;
+    trial = 0;
+    trialVelocities = [];
     this.storage = storage;
     if (subject != null) {
       this.subject = subject;
@@ -168,6 +187,10 @@ class ExperimentLog {
     debugPrint("Experiment ended");
     expStopWatch.stop();
     expStopWatch.reset();
+    expElapsedTimeMicros = expStopWatch.elapsedMicroseconds;
+    expEndTime = DateTime.now();
+    addNonTrackingEvent();
+    flushLog();
   }
 
   void startTrial({int? trial}) {
