@@ -53,7 +53,7 @@ void main() {
 
   test('Stimuli object should generate random non-competing stimulus pair', () {
     Stimuli stimuli = Stimuli();
-    StimulusPair pair = stimuli.randomNonCompetingPair();
+    StimulusPair pair = stimuli.randomNonPhonologicalPair();
     expect(pair.a, isNotNull);
     expect(pair.b, isNotNull);
     List<StimulusPair> phonoPairs = stimuli.phonologicalPairs;
@@ -67,23 +67,51 @@ void main() {
     int nPhono = 16;
     int nRemaining = 25;
     List<int> dist =
-        stimuli.distributeNonCompetingPairs(nPhono + 1, nRemaining);
+        stimuli.distributeNonPhonologicalPairs(nPhono + 1, nRemaining);
     expect(dist.length, nPhono + 1);
     expect(dist.sum, nRemaining);
   });
 
   test('Stimuli object should generate correct number of experiment items', () {
     Stimuli stimuli = Stimuli();
-    List<StimulusPair> experiment =
-        stimuli.generateExperiment(n: 88, nPhono: 16, nPre: 3);
+    List<StimulusPairTarget> experiment =
+        stimuli.generateExperiment(n: 88, nPhono: 8, nMotor: 8, nPrime: 3);
     expect(experiment.length, 88);
+    expect(
+        experiment
+            .where((StimulusPairTarget p) => p.pairType == PairType.motorPrime)
+            .length,
+        24);
+    expect(
+        experiment
+            .where((StimulusPairTarget p) => p.pairType == PairType.phonoPrime)
+            .length,
+        24);
+    expect(
+        experiment
+            .where(
+                (StimulusPairTarget p) => p.pairType == PairType.phonoCritical)
+            .length,
+        8);
+    expect(
+        experiment
+            .where(
+                (StimulusPairTarget p) => p.pairType == PairType.motorCritical)
+            .length,
+        8);
+    expect(
+        experiment
+            .where((StimulusPairTarget p) => p.pairType == PairType.control)
+            .length,
+        24);
   });
 
   test('Stimuli object random non-competing pair generates correct type', () {
     Stimuli stimuli = Stimuli();
-    StimulusPairTarget pair = stimuli.randomNonCompetingPair();
+    StimulusPairTarget pair = stimuli.randomNonPhonologicalPair();
     Target target = Target.b;
-    StimulusPairTarget pair2 = stimuli.randomNonCompetingPair(target: target);
+    StimulusPairTarget pair2 =
+        stimuli.randomNonPhonologicalPair(target: target);
 
     expect(pair.pairType, PairType.control);
     expect(pair2.pairType, PairType.control);
@@ -98,28 +126,55 @@ void main() {
     Target target = Target.a;
     Target competitor = Target.b;
     List<StimulusPairTarget> phono = stimuli.generatePhonologicalPairs(pair,
-        targetSrc: target, nPre: 3, targetDst: target);
+        targetSrc: target, nPrime: 3, targetDst: target);
 
     expect(phono.length, 4);
 
     expect(phono[0].isMember(pair.getCompetitorFromTarget(target)), true);
     expect(phono[0].isMember(pair.getFromTarget(target)), false);
     expect(phono[0].target, competitor);
-    expect(phono[0].pairType, PairType.phonoCompetitor);
+    expect(phono[0].pairType, PairType.phonoPrime);
 
     expect(phono[1].isMember(pair.getCompetitorFromTarget(target)), true);
     expect(phono[1].isMember(pair.getFromTarget(target)), false);
     expect(phono[1].target, competitor);
-    expect(phono[1].pairType, PairType.phonoCompetitor);
+    expect(phono[1].pairType, PairType.phonoPrime);
 
     expect(phono[2].isMember(pair.getCompetitorFromTarget(target)), true);
     expect(phono[2].isMember(pair.getFromTarget(target)), false);
     expect(phono[2].target, competitor);
-    expect(phono[2].pairType, PairType.phonoCompetitor);
+    expect(phono[2].pairType, PairType.phonoPrime);
 
     expect(phono[3].isMember(pair.getCompetitorFromTarget(target)), false);
     expect(phono[3].isMember(pair.getFromTarget(target)), true);
     expect(phono[3].target, target);
-    expect(phono[3].pairType, PairType.phonoTarget);
+    expect(phono[3].pairType, PairType.phonoCritical);
+  });
+
+  test('Stimuli object motor pair creates correct number and type', () {
+    Stimuli stimuli = Stimuli();
+    Target target = Target.a;
+    Target nonTarget = Target.b;
+    String stimulus = (stimuli.allStimuli..shuffle()).first;
+    List<StimulusPairTarget> motor =
+        stimuli.generateMotorPairs(stimulus, nPrime: 3, targetDst: target);
+
+    expect(motor.length, 4);
+
+    expect(motor[0].isMember(stimulus), true);
+    expect(motor[0].target, nonTarget);
+    expect(motor[0].pairType, PairType.motorPrime);
+
+    expect(motor[1].isMember(stimulus), true);
+    expect(motor[1].target, nonTarget);
+    expect(motor[1].pairType, PairType.motorPrime);
+
+    expect(motor[2].isMember(stimulus), true);
+    expect(motor[2].target, nonTarget);
+    expect(motor[2].pairType, PairType.motorPrime);
+
+    expect(motor[3].isMember(stimulus), false);
+    expect(motor[3].target, target);
+    expect(motor[3].pairType, PairType.motorCritical);
   });
 }

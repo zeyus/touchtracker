@@ -7,7 +7,7 @@ import 'package:collection/collection.dart';
 // enum of target a or b
 enum Target { a, b }
 
-enum PairType { control, phonoCompetitor, phonoTarget }
+enum PairType { control, phonoPrime, phonoCritical, motorPrime, motorCritical }
 
 // add extension to Target to get random target
 extension TargetExtension on Target {
@@ -65,11 +65,17 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
       case PairType.control:
         title = 'Control: ';
         break;
-      case PairType.phonoCompetitor:
-        title = 'Competitor: ';
+      case PairType.phonoCritical:
+        title = 'Phono critical: ';
         break;
-      case PairType.phonoTarget:
-        title = 'Target: ';
+      case PairType.phonoPrime:
+        title = 'Phono prime: ';
+        break;
+      case PairType.motorPrime:
+        title = 'Motor prime: ';
+        break;
+      case PairType.motorCritical:
+        title = 'Motor critical: ';
         break;
     }
     title += a.toString();
@@ -93,6 +99,7 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
 }
 
 class Stimuli {
+  late final List<String> _nonPhonologicalStimuli;
   final Map<String, String> _assetNames = {
     'ball': 'assets/vector/ball.svg',
     'balloon': 'assets/vector/balloon.svg',
@@ -176,6 +183,10 @@ class Stimuli {
 
   Stimuli() {
     _allStimuli.addAll(_assetNames.keys);
+    _nonPhonologicalStimuli = _allStimuli
+        .where((String s) =>
+            !_phonologicalPairs.any((StimulusPair p) => p.isMember(s)))
+        .toList();
   }
 
   Widget stimulus(String name) {
@@ -192,37 +203,64 @@ class Stimuli {
   }
 
   List<StimulusPairTarget> generatePhonologicalPairs(StimulusPair pair,
-      {Target targetSrc = Target.a, nPre = 3, Target targetDst = Target.a}) {
+      {Target targetSrc = Target.a, nPrime = 3, Target targetDst = Target.a}) {
     // result pairs
     final List<StimulusPairTarget> result = [];
     // exclude target and competitor from list of all stimuli
     final List<String> nonCompetitorStimuli =
         _allStimuli.where((String s) => s != pair.a && s != pair.b).toList();
 
-    final String targetStim = pair.getFromTarget(targetSrc);
-    final String competitor = pair.getCompetitorFromTarget(targetSrc);
+    final String critical = pair.getFromTarget(targetSrc);
+    final String prime = pair.getCompetitorFromTarget(targetSrc);
     // shuffle stimuli
     nonCompetitorStimuli.shuffle();
     // generate 3 pairs with target and non competitor
-    for (int i = 0; i < nPre; i++) {
+    for (int i = 0; i < nPrime; i++) {
       // get competitor from list of stimuli and remove it from list
       final String nonCompetitor = nonCompetitorStimuli.removeLast();
       if (targetDst == Target.a) {
         result.add(StimulusPairTarget(
-            nonCompetitor, competitor, Target.b, PairType.phonoCompetitor));
+            nonCompetitor, prime, Target.b, PairType.phonoPrime));
       } else {
         result.add(StimulusPairTarget(
-            competitor, nonCompetitor, Target.a, PairType.phonoCompetitor));
+            prime, nonCompetitor, Target.a, PairType.phonoPrime));
       }
     }
     // finally add target b and random non competitor
     if (targetDst == Target.a) {
-      result.add(StimulusPairTarget(targetStim, nonCompetitorStimuli.last,
-          Target.a, PairType.phonoTarget));
+      result.add(StimulusPairTarget(critical, nonCompetitorStimuli.last,
+          Target.a, PairType.phonoCritical));
     } else {
-      result.add(StimulusPairTarget(nonCompetitorStimuli.last, targetStim,
-          Target.b, PairType.phonoTarget));
+      result.add(StimulusPairTarget(nonCompetitorStimuli.last, critical,
+          Target.b, PairType.phonoCritical));
     }
+
+    return result;
+  }
+
+  List<StimulusPairTarget> generateMotorPairs(String prime,
+      {nPrime = 3, Target targetDst = Target.a}) {
+    final List<StimulusPairTarget> result = [];
+    final List<String> nonCompetitorStimuli =
+        _allStimuli.where((String s) => s != prime).toList();
+
+    // shuffle stimuli
+    nonCompetitorStimuli.shuffle();
+    // generate 3 pairs with target and non competitor
+    for (int i = 0; i < nPrime; i++) {
+      // get competitor from list of stimuli and remove it from list
+      final String nonCompetitor = nonCompetitorStimuli.removeLast();
+      if (targetDst == Target.a) {
+        result.add(StimulusPairTarget(
+            nonCompetitor, prime, Target.b, PairType.motorPrime));
+      } else {
+        result.add(StimulusPairTarget(
+            prime, nonCompetitor, Target.a, PairType.motorPrime));
+      }
+    }
+
+    result.add(StimulusPairTarget(nonCompetitorStimuli.last,
+        nonCompetitorStimuli.first, targetDst, PairType.motorCritical));
 
     return result;
   }
@@ -230,29 +268,27 @@ class Stimuli {
   // this needs work, better to save all non-paired stimuli to property
   // and then shuffle them. this is just to remind me how to do it
   // this also means we need a bunch more images - probably 30 or so.
-  StimulusPairTarget randomNonCompetingPair({Target? target}) {
-    // this is mega inefficient, only needs doing once
-    final List<String> nonCompetitorStimuli = _allStimuli
-        .where((String s) =>
-            !_phonologicalPairs.any((StimulusPair p) => p.isMember(s)))
-        .toList();
-    nonCompetitorStimuli.shuffle();
-    final String a = nonCompetitorStimuli.removeLast();
-    final String b = nonCompetitorStimuli.removeLast();
+  StimulusPairTarget randomNonPhonologicalPair({Target? target}) {
+    // copy so shuffle doesn't modify original
+    final List<String> nonPhonoStimuli = List.from(_nonPhonologicalStimuli);
+    nonPhonoStimuli.shuffle();
+    final String a = nonPhonoStimuli.removeLast();
+    final String b = nonPhonoStimuli.removeLast();
     // if target is null, pick randomly
     target ??= TargetExtension.getRandom();
     return StimulusPairTarget(a, b, target, PairType.control);
   }
 
-  List<StimulusPairTarget> randomNonCompetingPairs(int n) {
+  List<StimulusPairTarget> randomNonPhonologicalPairs(int n) {
     final List<StimulusPairTarget> result = [];
     for (int i = 0; i < n; i++) {
-      result.add(randomNonCompetingPair(target: TargetExtension.getRandom()));
+      result
+          .add(randomNonPhonologicalPair(target: TargetExtension.getRandom()));
     }
     return result;
   }
 
-  List<int> distributeNonCompetingPairs(int bins, int values) {
+  List<int> distributeNonPhonologicalPairs(int bins, int values) {
     final List<int> result = [];
     final Random _rand = Random();
     int remainingNonPhono = values;
@@ -279,26 +315,38 @@ class Stimuli {
   }
 
   List<StimulusPairTarget> generateExperiment(
-      {int n = 88, int nPhono = 16, int nPre = 3}) {
-    final int nNonPhono = n - (nPhono * (nPre + 1));
+      {int n = 88, int nPhono = 8, int nMotor = 8, int nPrime = 3}) {
+    final int nNonPhono = n - ((nPhono + nMotor) * (nPrime + 1));
     final List<int> nonPhonoDistribution =
-        distributeNonCompetingPairs(nPhono + 1, nNonPhono);
+        distributeNonPhonologicalPairs(nPhono + nMotor + 1, nNonPhono);
     final List<StimulusPairTarget> pairs = [];
     // distribute non-phonological stimuli
-
+    List<List<StimulusPairTarget>> conditions = [];
     for (int i = 0; i < nPhono; i++) {
-      // add non-competitor (control) stimuli
-      pairs.addAll(randomNonCompetingPairs(nonPhonoDistribution.removeLast()));
-      // add phonological stimuli
-      pairs.addAll(
-          generatePhonologicalPairs((_phonologicalPairs..shuffle()).first,
-              nPre: nPre,
+      conditions
+          .add(generatePhonologicalPairs((_phonologicalPairs..shuffle()).first,
+              nPrime: nPrime,
               // randomize target
               targetSrc: TargetExtension.getRandom(),
               // randomize target destination
               targetDst: TargetExtension.getRandom()));
     }
-    pairs.addAll(randomNonCompetingPairs(nonPhonoDistribution.removeLast()));
+    for (int i = 0; i < nMotor; i++) {
+      conditions
+          .add(generateMotorPairs((_nonPhonologicalStimuli..shuffle()).first,
+              nPrime: nPrime,
+              // randomize target destination
+              targetDst: TargetExtension.getRandom()));
+    }
+    conditions.shuffle();
+    for (int i = 0; i < conditions.length; i++) {
+      // add non-competitor (control) stimuli
+      pairs.addAll(
+          randomNonPhonologicalPairs(nonPhonoDistribution.removeLast()));
+      // add phonological stimuli
+      pairs.addAll(conditions[i]);
+    }
+    pairs.addAll(randomNonPhonologicalPairs(nonPhonoDistribution.removeLast()));
     return pairs;
   }
 

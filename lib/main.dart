@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
@@ -63,11 +64,13 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        FocusScopeNode currentFocus = FocusScope.of(context);
+        if (!kIsWeb) {
+          FocusScopeNode currentFocus = FocusScope.of(context);
 
-        if (!currentFocus.hasPrimaryFocus) {
-          currentFocus.unfocus();
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+            SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+          }
         }
       },
       child: Scaffold(
