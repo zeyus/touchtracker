@@ -15,3 +15,9 @@ mousetrap csv compatible flutter (Android, iOS, Web) touch tracking implementati
 ## Future plans
 
 After finishing using the app for a research project, I want to decouple the experiment and make it somewhat easy to use the app as an experiment builder (or maybe just a "player") which can be customized with various assets (sounds, images, text prompts). Using the Candle-Candy experiment as a 
+
+## License
+
+Copyright (c) 2021-2022 [zeyus](https://github.com/zeyus).
+
+[OSL 3.0](LICENSE.txt)
