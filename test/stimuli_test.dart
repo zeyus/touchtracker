@@ -155,7 +155,7 @@ void main() {
     Stimuli stimuli = Stimuli();
     Target target = Target.a;
     Target nonTarget = Target.b;
-    String stimulus = (stimuli.allStimuli..shuffle()).first;
+    String stimulus = (stimuli.nonPhonologicalStimuli..shuffle()).first;
     List<StimulusPairTarget> motor =
         stimuli.generateMotorPairs(stimulus, nPrime: 3, targetDst: target);
 
@@ -164,17 +164,34 @@ void main() {
     expect(motor[0].isMember(stimulus), true);
     expect(motor[0].target, nonTarget);
     expect(motor[0].pairType, PairType.motorPrime);
+    // make sure the pair is not a member of phono pairs
+    expect(
+        stimuli.phonologicalPairs
+            .any((StimulusPair p) => p.hasSharedMember(motor[0])),
+        false);
 
     expect(motor[1].isMember(stimulus), true);
     expect(motor[1].target, nonTarget);
     expect(motor[1].pairType, PairType.motorPrime);
+    expect(
+        stimuli.phonologicalPairs
+            .any((StimulusPair p) => p.hasSharedMember(motor[1])),
+        false);
 
     expect(motor[2].isMember(stimulus), true);
     expect(motor[2].target, nonTarget);
     expect(motor[2].pairType, PairType.motorPrime);
+    expect(
+        stimuli.phonologicalPairs
+            .any((StimulusPair p) => p.hasSharedMember(motor[2])),
+        false);
 
     expect(motor[3].isMember(stimulus), false);
     expect(motor[3].target, target);
     expect(motor[3].pairType, PairType.motorCritical);
+    expect(
+        stimuli.phonologicalPairs
+            .any((StimulusPair p) => p.hasSharedMember(motor[3])),
+        false);
   });
 }

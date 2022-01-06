@@ -181,6 +181,8 @@ class Stimuli {
 
   final Map<String, Widget> _preparedAssets = {};
 
+  get nonPhonologicalStimuli => _nonPhonologicalStimuli;
+
   Stimuli() {
     _allStimuli.addAll(_assetNames.keys);
     _nonPhonologicalStimuli = _allStimuli
@@ -241,15 +243,13 @@ class Stimuli {
   List<StimulusPairTarget> generateMotorPairs(String prime,
       {nPrime = 3, Target targetDst = Target.a}) {
     final List<StimulusPairTarget> result = [];
-    final List<String> nonCompetitorStimuli =
-        _allStimuli.where((String s) => s != prime).toList();
-
+    final List<String> nonPhonoStimuli = List.from(_nonPhonologicalStimuli);
     // shuffle stimuli
-    nonCompetitorStimuli.shuffle();
+    nonPhonoStimuli.shuffle();
     // generate 3 pairs with target and non competitor
     for (int i = 0; i < nPrime; i++) {
       // get competitor from list of stimuli and remove it from list
-      final String nonCompetitor = nonCompetitorStimuli.removeLast();
+      final String nonCompetitor = nonPhonoStimuli.removeLast();
       if (targetDst == Target.a) {
         result.add(StimulusPairTarget(
             nonCompetitor, prime, Target.b, PairType.motorPrime));
@@ -259,8 +259,8 @@ class Stimuli {
       }
     }
 
-    result.add(StimulusPairTarget(nonCompetitorStimuli.last,
-        nonCompetitorStimuli.first, targetDst, PairType.motorCritical));
+    result.add(StimulusPairTarget(nonPhonoStimuli.last, nonPhonoStimuli.first,
+        targetDst, PairType.motorCritical));
 
     return result;
   }
