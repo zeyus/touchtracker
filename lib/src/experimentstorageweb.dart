@@ -5,7 +5,7 @@ import 'dart:html';
 import 'package:csv/csv.dart';
 
 class ExperimentStorageWeb extends ExperimentStorage {
-  Map<String, String> _output = {};
+  final Map<String, String> _output = {};
 
   final RegExp rStripSpecial = RegExp(r'[^a-zA-Z0-9-_ ]+');
   String _replaceInvalidChars(String text, {String replace = '_'}) {
