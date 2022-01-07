@@ -247,16 +247,29 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
       value: Provider.of<AudioPrompt>(context),
       child: Consumer<AudioPrompt>(
         builder: (_, audioPrompt, __) {
-          return audioPrompt.playerState == PlayerState.COMPLETED
+          if (audioPrompt.playerState == PlayerState.PLAYING) {
+            return _waitingForAudioPrompt();
+          }
+          return audioPrompt.playerState == PlayerState.COMPLETED ||
+                  _stimuliVisible
               ? _stimuliScreen(stimuli)
-              : _stimuliAudioPrompt(stimuli);
+              : _stimuliAudioPrompt(stimuli, audioPrompt);
         },
       ),
     );
   }
 
-  Widget _stimuliAudioPrompt(StimulusPairTarget stimuli) {
-    Provider.of<AudioPrompt>(context, listen: false).play(stimuli);
+  Widget _stimuliAudioPrompt(
+      StimulusPairTarget stimuli, AudioPrompt audioPrompt) {
+    audioPrompt.play(stimuli).catchError((error) {
+      debugPrint("Error playing audio: $error");
+      return audioPrompt.player;
+    });
+
+    return _waitingForAudioPrompt();
+  }
+
+  Widget _waitingForAudioPrompt() {
     return const Center(child: Text('...'));
   }
 
@@ -308,8 +321,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                           Vector2(d.globalPosition.dx, d.globalPosition.dy));
 
                   if (!_stimuliVisible && position != null) {
-                    // debugPrint(
-                    //     "position: ${position!.dx}, ${position!.dy}, d.globalPosition: ${d.globalPosition.dx}, ${d.globalPosition.dy}, d.localPosition: ${d.localPosition.dx}, ${d.localPosition.dy}");
                     if (max((d.localPosition.dx - position!.dx).abs(),
                             (d.localPosition.dy - position!.dy).abs()) >
                         _circleRadius * 1.5) {
@@ -344,7 +355,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
               Provider.of<ExperimentLog>(context, listen: false).endTrial();
               Provider.of<ExperimentLog>(context, listen: false)
                   .endExperiment();
-              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
               Navigator.pop(context);
             },
           ),
@@ -354,7 +364,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
           child: ElevatedButton(
             child: const Text("Thank you page"),
             onPressed: () {
-              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
               Provider.of<ExperimentLog>(context, listen: false).endTrial();
               Provider.of<ExperimentLog>(context, listen: false)
                   .endExperiment();
@@ -422,14 +431,22 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                             .correct = isCorrect;
                         Provider.of<ExperimentLog>(context, listen: false)
                             .endTrial();
-                        Provider.of<AudioPrompt>(context, listen: false)
-                            .resetState();
-                        SystemChrome.setEnabledSystemUIMode(
-                            SystemUiMode.immersive);
+
                         if (controller.page! + 1 < totalPages) {
-                          controller.nextPage(
-                              duration: const Duration(milliseconds: 1),
-                              curve: Curves.linear);
+                          debugPrint("Next page...");
+                          setState(() {
+                            debugPrint("reset stim pos setstate callback...");
+                            position = null;
+                            _stimuliVisible = false;
+                          });
+                          Provider.of<AudioPrompt>(context, listen: false)
+                              .resetState()
+                              .then((_) {
+                            debugPrint("reset stim pos...");
+                            controller.nextPage(
+                                duration: const Duration(milliseconds: 1),
+                                curve: Curves.linear);
+                          });
                         } else {
                           Provider.of<ExperimentLog>(context, listen: false)
                               .endExperiment();
@@ -452,10 +469,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                                     ], child: const ThankYouWidget())),
                           );
                         }
-                        setState(() {
-                          position = null;
-                          _stimuliVisible = false;
-                        });
 
                         return true;
                       },
@@ -519,5 +532,33 @@ class ThankYouWidget extends StatelessWidget {
       );
     }
     return links;
+  }
+}
+
+class AudioPromptInterstitial extends StatelessWidget {
+  const AudioPromptInterstitial({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Please listen to the audio prompt",
+              style: TextStyle(fontSize: 30),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              child: const Text("Continue"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
