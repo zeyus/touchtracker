@@ -5,17 +5,34 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:touchtracker/src/stimuli.dart';
 
+class AudioPromptException implements Exception {
+  final String message;
+
+  AudioPromptException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class AudioPrompt with ChangeNotifier {
   final String assetPath = 'audio/';
   final String fileExtension = '.wav';
-  final bool _onlyNotifyOnComplete = true;
+  final bool _onlyNotifyOnComplete = false;
   late final AudioCache audioCache;
   PlayerState _playerState = PlayerState.STOPPED;
   VoidCallback? _onPlayStart;
   VoidCallback? _onPlayComplete;
 
   AudioPrompt({VoidCallback? onPlayStart, VoidCallback? onPlayComplete}) {
-    audioCache = AudioCache(fixedPlayer: AudioPlayer());
+    final PlayerMode mode;
+    if (kIsWeb) {
+      mode = PlayerMode.MEDIA_PLAYER;
+    } else {
+      mode = PlayerMode.LOW_LATENCY;
+    }
+    audioCache = AudioCache(
+        fixedPlayer:
+            AudioPlayer(mode: mode, playerId: 'TouchTrackerAudioPrompt'));
     if (onPlayStart != null) {
       this.onPlayStart = onPlayStart;
     }
@@ -23,6 +40,7 @@ class AudioPrompt with ChangeNotifier {
       this.onPlayComplete = onPlayComplete;
     }
     audioCache.fixedPlayer?.onPlayerStateChanged.listen(stateChangeListener);
+
     if (kIsWeb) {
       // Calls to Platform.isIOS fails on web
       return;
@@ -32,26 +50,35 @@ class AudioPrompt with ChangeNotifier {
     }
   }
 
+  AudioPlayer get player => audioCache.fixedPlayer as AudioPlayer;
+
   Future<AudioPlayer> play(StimulusPairTarget prompt) async {
+    if (_playerState == PlayerState.PLAYING) {
+      return Future.error(
+          AudioPromptException('AudioPrompt is already playing'));
+    }
+    await Logger.changeLogLevel(LogLevel.INFO);
+
     String target = prompt.getTargetStimulus();
     String filename = '$assetPath$target$fileExtension';
     debugPrint("playing $filename for $prompt");
     // await audioCache.play(filename);
-    if (!kIsWeb) {
-      return await audioCache.play(filename);
-    }
+    // if (!kIsWeb) {
+    //   // force rapid state update
+    //   stateChangeListener(PlayerState.PLAYING);
+    //   return await audioCache.play(filename);
+    // }
     debugPrint("web hack");
     // dirty web hack
     int currentTime = DateTime.now().millisecondsSinceEpoch;
+    stateChangeListener(PlayerState.PLAYING);
     AudioPlayer player = await audioCache.play(filename);
     int diff = DateTime.now().millisecondsSinceEpoch - currentTime;
     // getduration fails on web. max is 1 second, so we use that.
     const duration = 1000;
     // manually trigger state change
     Future.delayed(Duration(milliseconds: max(duration - diff, 1)), () {
-      if (_playerState != PlayerState.COMPLETED) {
-        stateChangeListener(PlayerState.COMPLETED);
-      }
+      stateChangeListener(PlayerState.COMPLETED);
     });
     return player;
   }
@@ -77,10 +104,11 @@ class AudioPrompt with ChangeNotifier {
     }
   }
 
-  void resetState() {
+  Future<void> resetState() async {
     _playerState = PlayerState.STOPPED;
-    audioCache.fixedPlayer?.stop();
-    notifyListeners();
+    await audioCache.fixedPlayer?.stop();
+    // audioCache.fixedPlayer?.release();
+    // notifyListeners();
   }
 
   PlayerState get playerState => _playerState;
