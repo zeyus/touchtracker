@@ -79,6 +79,7 @@ class AudioPrompt with ChangeNotifier {
 
   void resetState() {
     _playerState = PlayerState.STOPPED;
+    audioCache.fixedPlayer?.stop();
     notifyListeners();
   }
 
