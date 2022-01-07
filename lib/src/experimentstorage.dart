@@ -11,6 +11,9 @@ abstract class ExperimentStorage {
 
   Future<void> write(List<List<dynamic>> data, {key = '', update = false});
   Future<void> flush(List<List<dynamic>> data, {key = ''});
+  List<String> getLogs();
+  Future<void> openLog(String log);
+  Future<void> clear();
 }
 
 ExperimentStorage getStorage() => storage.getStorage();

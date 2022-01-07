@@ -170,6 +170,7 @@ class ExperimentLog {
     trial = 0;
     trialVelocities = [];
     this.storage = storage;
+    storage.clear();
     if (subject != null) {
       this.subject = subject;
     }

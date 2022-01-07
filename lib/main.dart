@@ -491,9 +491,33 @@ class ThankYouWidget extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
+            ..._buildLogLinks(context),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildLogLinks(BuildContext context) {
+    List<Widget> links = [];
+    links.add(const SizedBox(height: 20));
+    links.add(const Text(
+      "You can download the log files here:",
+      style: TextStyle(fontSize: 20),
+    ));
+    links.add(const SizedBox(height: 20));
+    for (String logFile
+        in Provider.of<ExperimentStorage>(context, listen: false).getLogs()) {
+      links.add(
+        ElevatedButton(
+          child: Text(logFile),
+          onPressed: () {
+            Provider.of<ExperimentStorage>(context, listen: false)
+                .openLog(logFile);
+          },
+        ),
+      );
+    }
+    return links;
   }
 }

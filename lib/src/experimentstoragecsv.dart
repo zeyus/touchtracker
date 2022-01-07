@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ExperimentStorageCSV extends ExperimentStorage {
   // internal
   final RegExp rStripSpecial = RegExp(r'[^a-zA-Z0-9-_ ]+');
   String _path = '';
+  final List<String> _logFiles = [];
 
   ExperimentStorageCSV() : super();
 
@@ -27,9 +29,14 @@ class ExperimentStorageCSV extends ExperimentStorage {
     return _path;
   }
 
-  Future<File> _localFile(String filename) async {
+  Future<String> _getFullPath(String filename) async {
     final path = await _localPath;
-    return File('$path/$filename');
+    return '$path/$filename';
+  }
+
+  Future<File> _localFile(String filename) async {
+    final path = await _getFullPath(filename);
+    return File(path);
   }
 
   String _getFilename(String key) {
@@ -47,12 +54,16 @@ class ExperimentStorageCSV extends ExperimentStorage {
     key = key == '' ? this.key : key;
     String filename = _getFilename(key);
 
+    if (!_logFiles.contains(filename)) {
+      _logFiles.add(filename);
+    }
+
     debugPrint('writing file: $filename');
 
     final file = await _localFile(filename);
 
     FileMode _fileMode = update ? FileMode.append : FileMode.write;
-    await file.writeAsString(const ListToCsvConverter().convert(data),
+    await file.writeAsString(const ListToCsvConverter().convert(data) + '\n',
         mode: _fileMode, flush: true);
 
     return true;
@@ -61,6 +72,22 @@ class ExperimentStorageCSV extends ExperimentStorage {
   @override
   Future<void> flush(List<List<dynamic>> data, {key = ''}) async {
     await write(data, key: key, update: true);
+  }
+
+  @override
+  List<String> getLogs() {
+    return _logFiles;
+  }
+
+  @override
+  Future<void> openLog(String log) async {
+    final file = await _getFullPath(log);
+    Share.shareFiles([file], mimeTypes: ['text/csv']);
+  }
+
+  @override
+  Future<void> clear() async {
+    _logFiles.clear();
   }
 }
 
