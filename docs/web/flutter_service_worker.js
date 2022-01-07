@@ -3,7 +3,7 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 const RESOURCES = {
-  "assets/AssetManifest.json": "7e448c16ddb6f1f1e4f060e67e42ec24",
+  "assets/AssetManifest.json": "585e99c52863f859b8dc724b34df45a4",
 "assets/assets/audio/ball.wav": "e36c6033484f65495133e2cc2170135d",
 "assets/assets/audio/balloon.wav": "d325ae5e5ac5cb1eb0b095bc666ac2c5",
 "assets/assets/audio/banana.wav": "2a6eff70bdb354ee88a55a0ec8ede551",
@@ -24,7 +24,6 @@ const RESOURCES = {
 "assets/assets/audio/clown.wav": "54a312438a782ec3cfb0d32d92a67b15",
 "assets/assets/audio/coffee.wav": "483cb922ef5eecfac37e58a3d9222643",
 "assets/assets/audio/cookie.wav": "60d209fd35b5c929e6753e79286f9ce2",
-"assets/assets/audio/desktop.ini": "b3d53b0bcfe4c890bfc7b6e8e9d66125",
 "assets/assets/audio/dog.wav": "c4b80ad417be683c29291b913bc8cd1f",
 "assets/assets/audio/dolphin.wav": "cc974b826d87b4dfcc56964657ef08cb",
 "assets/assets/audio/donut.wav": "25d8e791d5939919e4ff97d9c6eefc3b",
@@ -169,8 +168,8 @@ const RESOURCES = {
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
-"index.html": "1e5f81751dd832e16c0917b9cba44852",
-"/": "1e5f81751dd832e16c0917b9cba44852",
+"index.html": "4c2818f0e73a46d46a9d336e594164e4",
+"/": "4c2818f0e73a46d46a9d336e594164e4",
 "main.dart.js": "bc26e77bfb777e89ba66f6f9d4e700c9",
 "manifest.json": "5c4e6201ac91c218433f368c55c02d3a",
 "version.json": "1cb19acdb556177e2f0cb723fb9b845f"
