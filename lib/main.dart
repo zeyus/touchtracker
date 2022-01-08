@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/experimentstorage.dart';
 
-import 'package:touchtracker/src/widgets/audioprompt.dart';
+import 'package:touchtracker/src/audioprompt.dart';
+import 'package:touchtracker/src/widgets/trialpage.dart';
 import 'package:vector_math/vector_math.dart' hide Colors;
 import 'package:flutter/material.dart';
 import 'package:touchtracker/src/experimentlog.dart';
@@ -161,7 +162,6 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
 class TouchTrackerWidget extends StatefulWidget {
   final Stimuli _stimuli = Stimuli();
   late final TouchTrackerBloc bloc;
-  // final _audioPrompt = AudioPrompt();
 
   TouchTrackerWidget({Key? key}) : super(key: key) {
     bloc = TouchTrackerBloc(stimuli: _stimuli);
@@ -176,7 +176,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   var currentPageValue = 0.0;
   var totalPages = 0.0;
   Offset? position;
-  bool _stimuliVisible = false;
+
+  // one global audiocache for all widgets
+  late final AudioCache audioCache;
 
   static const double _circleRadius = 40.0;
   PageController controller =
@@ -187,6 +189,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   @override
   void initState() {
     super.initState();
+    audioCache = AudioPrompt.createAudioCache();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
@@ -203,6 +206,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   @override
   void dispose() {
+    audioCache.fixedPlayer?.dispose();
     // Clean up the controller when the widget is disposed.
     controller.dispose();
     super.dispose();
@@ -236,249 +240,15 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   controller: controller,
                   itemCount: targets.length,
                   itemBuilder: (context, index) {
-                    return _buildStimuli(targets[index]);
+                    return MultiProvider(
+                        providers: [
+                          Provider<AudioCache>.value(value: audioCache),
+                          Provider<Stimuli>.value(value: widget._stimuli),
+                        ],
+                        builder: (context, child) =>
+                            TrialPage(stimuli: targets[index]));
                   });
             }));
-  }
-
-  Widget _buildStimuli(StimulusPairTarget stimuli) {
-    debugPrint("build triggered for $stimuli");
-    return ChangeNotifierProvider.value(
-      value: Provider.of<AudioPrompt>(context),
-      child: Consumer<AudioPrompt>(
-        builder: (_, audioPrompt, __) {
-          if (audioPrompt.playerState == PlayerState.PLAYING) {
-            return _waitingForAudioPrompt();
-          }
-          return audioPrompt.playerState == PlayerState.COMPLETED ||
-                  _stimuliVisible
-              ? _stimuliScreen(stimuli)
-              : _stimuliAudioPrompt(stimuli, audioPrompt);
-        },
-      ),
-    );
-  }
-
-  Widget _stimuliAudioPrompt(
-      StimulusPairTarget stimuli, AudioPrompt audioPrompt) {
-    audioPrompt.play(stimuli).catchError((error) {
-      debugPrint("Error playing audio: $error");
-      return audioPrompt.player;
-    });
-
-    return _waitingForAudioPrompt();
-  }
-
-  Widget _waitingForAudioPrompt() {
-    return const Center(child: Text('...'));
-  }
-
-  Widget _stimuliScreen(StimulusPairTarget stimuli) {
-    return Stack(
-      key: Key(stimuli.title),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildStimulus(stimuli, Target.a),
-            _buildStimulus(stimuli, Target.b),
-          ],
-        ),
-        Positioned(
-          left: position!.dx,
-          top: position!.dy,
-          child: SizedBox(
-            width: _circleRadius * 2,
-            height: _circleRadius * 2,
-            child:
-                // add button to navigate to next page
-                GestureDetector(
-              child: Draggable<bool>(
-                data: true,
-                child: const CircleAvatar(
-                    radius: _circleRadius,
-                    foregroundColor: Colors.black,
-                    backgroundColor: Colors.black),
-                feedback: const CircleAvatar(
-                    radius: _circleRadius,
-                    foregroundColor: Colors.black,
-                    backgroundColor: Colors.black),
-                childWhenDragging: const CircleAvatar(
-                    radius: _circleRadius,
-                    foregroundColor: Colors.grey,
-                    backgroundColor: Colors.grey),
-                onDragStarted: () {
-                  Provider.of<ExperimentLog>(context, listen: false)
-                      .startTrial();
-
-                  Provider.of<ExperimentLog>(context, listen: false)
-                      .addTrackingEvent(Vector2(position!.dx, position!.dy));
-                  debugPrint("DragStart");
-                },
-                onDragUpdate: (DragUpdateDetails d) {
-                  Provider.of<ExperimentLog>(context, listen: false)
-                      .addTrackingEvent(
-                          Vector2(d.globalPosition.dx, d.globalPosition.dy));
-
-                  if (!_stimuliVisible && position != null) {
-                    if (max((d.localPosition.dx - position!.dx).abs(),
-                            (d.localPosition.dy - position!.dy).abs()) >
-                        _circleRadius * 1.5) {
-                      setState(() {
-                        _stimuliVisible = true;
-                      });
-                    }
-                  }
-                },
-                onDraggableCanceled: (Velocity velocity, Offset offset) {
-                  debugPrint("DragCancelled");
-                  if (_stimuliVisible) {
-                    setState(() => position = offset);
-                  }
-                },
-              ),
-            ),
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Text(
-            "${stimuli.title} ${currentPageValue.toInt() + 1}/${totalPages.toInt()}",
-            style: const TextStyle(fontSize: 20),
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: ElevatedButton(
-            child: const Text("Back to Home"),
-            onPressed: () {
-              Provider.of<ExperimentLog>(context, listen: false).endTrial();
-              Provider.of<ExperimentLog>(context, listen: false)
-                  .endExperiment();
-              Navigator.pop(context);
-            },
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: ElevatedButton(
-            child: const Text("Thank you page"),
-            onPressed: () {
-              Provider.of<ExperimentLog>(context, listen: false).endTrial();
-              Provider.of<ExperimentLog>(context, listen: false)
-                  .endExperiment();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => MultiProvider(providers: [
-                          Provider<ExperimentLog>.value(
-                              value: Provider.of<ExperimentLog>(context,
-                                  listen: false)),
-                          Provider<ExperimentStorage>.value(
-                              value: Provider.of<ExperimentStorage>(context,
-                                  listen: false)),
-                          ChangeNotifierProvider<AudioPrompt>.value(
-                              value: Provider.of<AudioPrompt>(context,
-                                  listen: false)),
-                        ], child: const ThankYouWidget())),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStimulus(StimulusPairTarget stimuli, Target which) {
-    final String stimulus = stimuli.getFromTarget(which);
-    final CrossAxisAlignment alignment =
-        which == Target.a ? CrossAxisAlignment.start : CrossAxisAlignment.end;
-    return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Visibility(
-          maintainSize: true,
-          maintainAnimation: true,
-          maintainState: true,
-          visible: _stimuliVisible,
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width / 2) - 2 * 22,
-            child: Column(
-              crossAxisAlignment: alignment,
-              children: [
-                SizedBox(
-                  height: 200,
-                  width: 200,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black, width: 1),
-                    ),
-                    child: DragTarget(
-                      builder: (context, candidateData, rejectedData) {
-                        return Center(
-                          child: SizedBox(
-                            width: 180,
-                            height: 180,
-                            child: widget.bloc.stimuli.stimulus(stimulus),
-                          ),
-                        );
-                      },
-                      onWillAccept: (data) {
-                        bool isCorrect = false;
-                        if (stimulus == stimuli.getTargetStimulus()) {
-                          isCorrect = true;
-                        }
-                        Provider.of<ExperimentLog>(context, listen: false)
-                            .correct = isCorrect;
-                        Provider.of<ExperimentLog>(context, listen: false)
-                            .endTrial();
-
-                        if (controller.page! + 1 < totalPages) {
-                          debugPrint("Next page...");
-                          setState(() {
-                            debugPrint("reset stim pos setstate callback...");
-                            position = null;
-                            _stimuliVisible = false;
-                          });
-                          Provider.of<AudioPrompt>(context, listen: false)
-                              .resetState()
-                              .then((_) {
-                            debugPrint("reset stim pos...");
-                            controller.nextPage(
-                                duration: const Duration(milliseconds: 1),
-                                curve: Curves.linear);
-                          });
-                        } else {
-                          Provider.of<ExperimentLog>(context, listen: false)
-                              .endExperiment();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => MultiProvider(providers: [
-                                      Provider<ExperimentLog>.value(
-                                          value: Provider.of<ExperimentLog>(
-                                              context,
-                                              listen: false)),
-                                      Provider<ExperimentStorage>.value(
-                                          value: Provider.of<ExperimentStorage>(
-                                              context,
-                                              listen: false)),
-                                      ChangeNotifierProvider<AudioPrompt>.value(
-                                          value: Provider.of<AudioPrompt>(
-                                              context,
-                                              listen: false)),
-                                    ], child: const ThankYouWidget())),
-                          );
-                        }
-
-                        return true;
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ));
   }
 }
 
