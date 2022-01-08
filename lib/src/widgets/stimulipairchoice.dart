@@ -83,6 +83,7 @@ class StimuliPairChoice extends StatelessWidget {
   }
 
   Widget _buildPair(BuildContext context) {
+    // @TODO: fix visibility check (too quick?).
     final bool stimuliVisible =
         Provider.of<TrialController>(context).stimuliVisible;
     return Row(
@@ -153,6 +154,7 @@ class StimuliPairChoice extends StatelessWidget {
             onMovement?.call(d.globalPosition.dx, d.globalPosition.dy);
           },
           onDraggableCanceled: (Velocity velocity, Offset offset) {
+            // @TODO: fix repositioning.
             Provider.of<TrialController>(context, listen: false)
                 .updatePosition(offset);
             onMovementCancelled?.call();
