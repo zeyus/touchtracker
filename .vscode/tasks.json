@@ -8,11 +8,25 @@
 				"build",
 				"web",
 				"--base-href",
-				"/touchtracker/web/",
+				"/touchtracker/web/"
 			],
 			"group": "build",
 			"problemMatcher": [],
 			"label": "flutter: flutter build web"
+		},
+		{
+			"type": "flutter",
+			"command": "flutter",
+			"args": [
+				"build",
+				"apk"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"label": "flutter: flutter build apk"
 		}
 	]
 }
