@@ -4,7 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:provider/provider.dart';
-import 'package:touchtracker/src/experimentstorage.dart';
+import 'package:touchtracker/src/storage/experimentstorage.dart';
 
 import 'package:touchtracker/src/audioprompt.dart';
 import 'package:touchtracker/src/widgets/trialpage.dart';
@@ -12,7 +12,7 @@ import 'package:touchtracker/src/widgets/trialpage.dart';
 import 'package:flutter/material.dart';
 import 'package:touchtracker/src/experimentlog.dart';
 import 'package:touchtracker/src/stimuli.dart';
-import 'package:touchtracker/src/touchtracker_bloc.dart';
+import 'package:touchtracker/src/bloc/touchtracker_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock/wakelock.dart';
 
@@ -36,7 +36,6 @@ class TouchTrackerApp extends StatelessWidget {
       providers: [
         Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
         Provider<ExperimentStorage>(create: (_) => getStorage()),
-        ChangeNotifierProvider<AudioPrompt>(create: (_) => AudioPrompt()),
       ],
       child: const MaterialApp(title: _title, home: ExperimentStartWidget()),
     );
@@ -127,9 +126,6 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                                       value: Provider.of<ExperimentStorage>(
                                           context,
                                           listen: false)),
-                                  ChangeNotifierProvider<AudioPrompt>.value(
-                                      value: Provider.of<AudioPrompt>(context,
-                                          listen: false)),
                                 ], child: TouchTrackerWidget())),
                       );
                     } else {
@@ -180,8 +176,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
-
-  //final AudioPrompt _audioPrompt = AudioPrompt();
 
   @override
   void initState() {
@@ -263,11 +257,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                                                         ExperimentStorage>(
                                                     context,
                                                     listen: false)),
-                                            ChangeNotifierProvider<
-                                                    AudioPrompt>.value(
-                                                value: Provider.of<AudioPrompt>(
-                                                    context,
-                                                    listen: false)),
                                           ], child: const ThankYouWidget())),
                                 );
                               }
@@ -327,33 +316,5 @@ class ThankYouWidget extends StatelessWidget {
       );
     }
     return links;
-  }
-}
-
-class AudioPromptInterstitial extends StatelessWidget {
-  const AudioPromptInterstitial({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Please listen to the audio prompt",
-              style: TextStyle(fontSize: 30),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              child: const Text("Continue"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

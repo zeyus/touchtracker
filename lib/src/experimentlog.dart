@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:touchtracker/src/experimentstorage.dart';
+import 'package:touchtracker/src/storage/experimentstorage.dart';
 import 'package:vector_math/vector_math.dart';
 
 // "acc","accuracy","average_response_time","avg_rt","background","bidi",

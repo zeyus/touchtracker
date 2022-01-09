@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/stimuli.dart';
-import 'package:touchtracker/src/trialcontroller.dart';
+import 'package:touchtracker/src/controller/trialcontroller.dart';
 import 'package:touchtracker/src/widgets/targetablestimulus.dart';
 
 class StimuliPairChoice extends StatelessWidget {
@@ -33,57 +33,11 @@ class StimuliPairChoice extends StatelessWidget {
       children: [
         _buildPair(context),
         _buildDragIndicator(context),
-        // Align(
-        //   alignment: Alignment.bottomCenter,
-        //   child: Text(
-        //     "${stimuli.title} ${currentPageValue.toInt() + 1}/${totalPages.toInt()}",
-        //     style: const TextStyle(fontSize: 20),
-        //   ),
-        // ),
-        // Align(
-        //   alignment: Alignment.bottomLeft,
-        //   child: ElevatedButton(
-        //     child: const Text("Back to Home"),
-        //     onPressed: () {
-        //       Provider.of<ExperimentLog>(context, listen: false).endTrial();
-        //       Provider.of<ExperimentLog>(context, listen: false)
-        //           .endExperiment();
-        //       Navigator.pop(context);
-        //     },
-        //   ),
-        // ),
-        // Align(
-        //   alignment: Alignment.bottomRight,
-        //   child: ElevatedButton(
-        //     child: const Text("Thank you page"),
-        //     onPressed: () {
-        //       Provider.of<ExperimentLog>(context, listen: false).endTrial();
-        //       Provider.of<ExperimentLog>(context, listen: false)
-        //           .endExperiment();
-        //       Navigator.pushReplacement(
-        //         context,
-        //         MaterialPageRoute(
-        //             builder: (context) => MultiProvider(providers: [
-        //                   Provider<ExperimentLog>.value(
-        //                       value: Provider.of<ExperimentLog>(context,
-        //                           listen: false)),
-        //                   Provider<ExperimentStorage>.value(
-        //                       value: Provider.of<ExperimentStorage>(context,
-        //                           listen: false)),
-        //                   ChangeNotifierProvider<AudioPrompt>.value(
-        //                       value: Provider.of<AudioPrompt>(context,
-        //                           listen: false)),
-        //                 ], child: const ThankYouWidget())),
-        //       );
-        //     },
-        //   ),
-        // ),
       ],
     );
   }
 
   Widget _buildPair(BuildContext context) {
-    // @TODO: fix visibility check (too quick?).
     final bool stimuliVisible =
         Provider.of<TrialController>(context).stimuliVisible;
     return Row(

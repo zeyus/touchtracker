@@ -1,4 +1,4 @@
-import 'package:touchtracker/src/experimentstorage.dart';
+import 'package:touchtracker/src/storage/experimentstorage.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html';
 
