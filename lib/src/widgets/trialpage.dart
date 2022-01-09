@@ -7,10 +7,6 @@ import 'package:touchtracker/src/trialcontroller.dart';
 import 'package:touchtracker/src/widgets/audiocue.dart';
 import 'package:touchtracker/src/widgets/stimulipairchoice.dart';
 
-// position = position ??
-//         Offset(MediaQuery.of(context).size.width / 2 - _circleRadius,
-//             MediaQuery.of(context).size.height / 1.25 - _circleRadius);
-
 class TrialPage extends StatelessWidget {
   final StimulusPairTarget stimuli;
   final void Function(bool isCorrect)? onTrialComplete;
@@ -37,25 +33,38 @@ class TrialPage extends StatelessWidget {
         return Consumer<TrialController>(
           builder: (BuildContext context, TrialController controller, _) {
             return StimuliPairChoice(
+              key: Key(key.toString() + stimuli.toString()),
               stimuli: stimuli,
               dragIndicatorRadius: _dragIndicatorRadius,
               onChoice: (bool isCorrect) {
-                onTrialComplete?.call(isCorrect);
                 controller.completeTrial(isCorrect);
                 Provider.of<ExperimentLog>(context, listen: false).correct =
                     isCorrect;
                 Provider.of<ExperimentLog>(context, listen: false).endTrial();
-                // to next page...
               },
               onMovementStart: () {
-                Provider.of<ExperimentLog>(context, listen: false).startTrial();
+                Provider.of<ExperimentLog>(context, listen: false).startTrial(
+                  cue: stimuli.toString(),
+                  condition: stimuli.pairType.toString(),
+                );
                 Provider.of<ExperimentLog>(context, listen: false)
                     .addTrackingEvent(controller.startXY);
                 debugPrint("DragStart");
               },
               onMovement: (x, y) {
+                if (controller.isComplete) {
+                  return;
+                }
+                controller.updateDistance(x, y);
                 Provider.of<ExperimentLog>(context, listen: false)
                     .addTrackingEvent(controller.curXY);
+              },
+              onMovementCancelled: (offset) {
+                if (!controller.isComplete) {
+                  controller.updatePosition(offset);
+                } else {
+                  onTrialComplete?.call(controller.isCorrect);
+                }
               },
             );
           },

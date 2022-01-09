@@ -38,6 +38,7 @@ class TrialController with ChangeNotifier {
 
   void updatePosition(Offset pos) {
     currentPos = pos;
+    notifyListeners();
   }
 
   void updateStartPosition(Offset pos) {

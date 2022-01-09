@@ -9,7 +9,7 @@ class StimuliPairChoice extends StatelessWidget {
   final Function(bool isCorrect)? onChoice;
   final Function? onMovementStart;
   final Function(double x, double y)? onMovement;
-  final Function? onMovementCancelled;
+  final Function(Offset offset)? onMovementCancelled;
   final double dragIndicatorRadius;
   const StimuliPairChoice(
       {Key? key,
@@ -125,7 +125,7 @@ class StimuliPairChoice extends StatelessWidget {
 
     return Positioned(
       left: Provider.of<TrialController>(context, listen: false).currentPos.dx,
-      top: Provider.of<TrialController>(context, listen: false).currentPos.dx,
+      top: Provider.of<TrialController>(context, listen: false).currentPos.dy,
       child: SizedBox(
         width: dragIndicatorRadius * 2,
         height: dragIndicatorRadius * 2,
@@ -149,15 +149,10 @@ class StimuliPairChoice extends StatelessWidget {
             onMovementStart?.call();
           },
           onDragUpdate: (DragUpdateDetails d) {
-            Provider.of<TrialController>(context, listen: false)
-                .updateDistance(d.globalPosition.dx, d.globalPosition.dy);
             onMovement?.call(d.globalPosition.dx, d.globalPosition.dy);
           },
           onDraggableCanceled: (Velocity velocity, Offset offset) {
-            // @TODO: fix repositioning.
-            Provider.of<TrialController>(context, listen: false)
-                .updatePosition(offset);
-            onMovementCancelled?.call();
+            onMovementCancelled?.call(offset);
           },
         ),
       ),

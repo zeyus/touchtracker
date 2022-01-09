@@ -194,9 +194,11 @@ class ExperimentLog {
     flushLog();
   }
 
-  void startTrial({int? trial}) {
+  void startTrial({int? trial, String? cue, String? condition}) {
     debugPrint("Trial started");
     trialStartTime = DateTime.now();
+    this.cue = cue;
+    this.condition = condition;
     trialStopWatch.start();
 
     this.trial = trial ?? this.trial + 1;
@@ -215,6 +217,8 @@ class ExperimentLog {
     xEnd = null;
     yEnd = null;
     trialSequence = 0;
+    condition = null;
+    cue = null;
 
     correct = null;
     trialStopWatch.reset();

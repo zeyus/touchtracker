@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -35,7 +34,7 @@ class AudioPrompt with ChangeNotifier {
     _playerId = playerId ?? 'TouchTrackerAudioPrompt';
 
     // reuse if possible
-    audioCache = existingAudioCache ?? createAudioCache(playerId: playerId);
+    audioCache = existingAudioCache ?? createAudioCache(playerId: _playerId);
 
     // allow for callbacks or statechange listeners
     if (onPlayStart != null) {
@@ -67,7 +66,6 @@ class AudioPrompt with ChangeNotifier {
       return Future.error(
           AudioPromptException('AudioPrompt is already playing'));
     }
-    await Logger.changeLogLevel(LogLevel.INFO);
 
     String target = prompt.getTargetStimulus();
     String filename = '$assetPath$target$fileExtension';

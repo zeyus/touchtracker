@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -9,7 +8,7 @@ import 'package:touchtracker/src/experimentstorage.dart';
 
 import 'package:touchtracker/src/audioprompt.dart';
 import 'package:touchtracker/src/widgets/trialpage.dart';
-import 'package:vector_math/vector_math.dart' hide Colors;
+
 import 'package:flutter/material.dart';
 import 'package:touchtracker/src/experimentlog.dart';
 import 'package:touchtracker/src/stimuli.dart';
@@ -175,12 +174,10 @@ class TouchTrackerWidget extends StatefulWidget {
 class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   var currentPageValue = 0.0;
   var totalPages = 0.0;
-  Offset? position;
 
   // one global audiocache for all widgets
   late final AudioCache audioCache;
 
-  static const double _circleRadius = 40.0;
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
 
@@ -214,12 +211,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Provider.of<ExperimentLog>(context).startTrial();
-
-    position = position ??
-        Offset(MediaQuery.of(context).size.width / 2 - _circleRadius,
-            MediaQuery.of(context).size.height / 1.25 - _circleRadius);
-
     return Scaffold(
         appBar: null,
         body: StreamBuilder<UnmodifiableListView<StimulusPairTarget>>(
@@ -245,8 +236,42 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                           Provider<AudioCache>.value(value: audioCache),
                           Provider<Stimuli>.value(value: widget._stimuli),
                         ],
-                        builder: (context, child) =>
-                            TrialPage(stimuli: targets[index]));
+                        builder: (context, child) => TrialPage(
+                            key: Key('TrialPage:$index'),
+                            stimuli: targets[index],
+                            onTrialComplete: (bool isCorrect) {
+                              if (controller.page! + 1 < totalPages) {
+                                controller.nextPage(
+                                    duration: const Duration(milliseconds: 1),
+                                    curve: Curves.linear);
+                              } else {
+                                Provider.of<ExperimentLog>(context,
+                                        listen: false)
+                                    .endExperiment();
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          MultiProvider(providers: [
+                                            Provider<ExperimentLog>.value(
+                                                value:
+                                                    Provider.of<ExperimentLog>(
+                                                        context,
+                                                        listen: false)),
+                                            Provider<ExperimentStorage>.value(
+                                                value: Provider.of<
+                                                        ExperimentStorage>(
+                                                    context,
+                                                    listen: false)),
+                                            ChangeNotifierProvider<
+                                                    AudioPrompt>.value(
+                                                value: Provider.of<AudioPrompt>(
+                                                    context,
+                                                    listen: false)),
+                                          ], child: const ThankYouWidget())),
+                                );
+                              }
+                            }));
                   });
             }));
   }
