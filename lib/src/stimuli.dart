@@ -243,7 +243,8 @@ class Stimuli {
   List<StimulusPairTarget> generateMotorPairs(String prime,
       {nPrime = 3, Target targetDst = Target.a}) {
     final List<StimulusPairTarget> result = [];
-    final List<String> nonPhonoStimuli = List.from(_nonPhonologicalStimuli);
+    final List<String> nonPhonoStimuli =
+        List.from(_nonPhonologicalStimuli.where((element) => element != prime));
     // shuffle stimuli
     nonPhonoStimuli.shuffle();
     // generate 3 pairs with target and non competitor
