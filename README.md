@@ -18,7 +18,7 @@ You can [run the latest touchtracker](https://zeyus.com/touchtracker/web/index.h
 
 ## Future plans
 
-After finishing using the app for a research project, I want to decouple the experiment and make it somewhat easy to use the app as an experiment builder (or maybe just a "player") which can be customized with various assets (sounds, images, text prompts). Using the Candle-Candy experiment as a 
+After finishing using the app for a research project, I want to decouple the experiment and make it somewhat easy to use the app as an experiment builder (or maybe just a "player") which can be customized with various assets (sounds, images, text prompts). Using the Candle-Candy experiment as a demo / tutorial.
 
 ## License
 
