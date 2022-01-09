@@ -6,56 +6,48 @@ import 'package:touchtracker/src/audioprompt.dart';
 import 'package:touchtracker/src/stimuli.dart';
 
 class AudioCue extends StatelessWidget {
-  final AudioCache audioCache;
   final StimulusPairTarget stimulusPairTarget;
   final Widget child;
   final Widget childWhenPromptComplete;
   final Function? onPromptComplete;
-  late final AudioPrompt audioPrompt;
 
-  AudioCue(
+  const AudioCue(
       {Key? key,
-      required this.audioCache,
       required this.stimulusPairTarget,
       required this.child,
       required this.childWhenPromptComplete,
       this.onPromptComplete})
-      : super(key: key) {
-    audioPrompt =
-        AudioPrompt(existingAudioCache: audioCache, onlyNotifyOnComplete: true);
-  }
+      : super(key: key);
 
   void _onPromptComplete() {
     // only call once.
     onPromptComplete?.call();
   }
 
-  void _playPrompt() {
-    if (!_isPromptPlaying() && !_isPromptComplete()) {
+  void _playPrompt(AudioPrompt audioPrompt) {
+    if (!_isPromptPlaying(audioPrompt) && !_isPromptComplete(audioPrompt)) {
       audioPrompt.play(stimulusPairTarget);
     }
   }
 
-  bool _isPromptComplete() {
+  bool _isPromptComplete(AudioPrompt audioPrompt) {
     return audioPrompt.playerState == PlayerState.COMPLETED;
   }
 
-  bool _isPromptPlaying() {
+  bool _isPromptPlaying(AudioPrompt audioPrompt) {
     return audioPrompt.playerState == PlayerState.PLAYING;
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AudioPrompt>.value(
-        value: audioPrompt,
-        child: Consumer<AudioPrompt>(builder: (context, _audioPrompt, _) {
-          if (_isPromptComplete()) {
-            _onPromptComplete();
-            return childWhenPromptComplete;
-          } else {
-            _playPrompt();
-            return child;
-          }
-        }));
+    return Consumer<AudioPrompt>(builder: (context, audioPrompt, _) {
+      if (_isPromptComplete(audioPrompt)) {
+        _onPromptComplete();
+        return childWhenPromptComplete;
+      } else {
+        _playPrompt(audioPrompt);
+        return child;
+      }
+    });
   }
 }

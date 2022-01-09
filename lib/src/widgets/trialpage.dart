@@ -1,9 +1,10 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:touchtracker/src/audioprompt.dart';
 import 'package:touchtracker/src/experimentlog.dart';
 import 'package:touchtracker/src/stimuli.dart';
-import 'package:touchtracker/src/trialcontroller.dart';
+import 'package:touchtracker/src/controller/trialcontroller.dart';
 import 'package:touchtracker/src/widgets/audiocue.dart';
 import 'package:touchtracker/src/widgets/stimulipairchoice.dart';
 
@@ -17,17 +18,21 @@ class TrialPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     debugPrint("build triggered for $stimuli");
-    return AudioCue(
-        audioCache: Provider.of<AudioCache>(context, listen: false),
-        stimulusPairTarget: stimuli,
-        child: const Center(child: Text('...')),
-        childWhenPromptComplete: _buildStimuliPairChoice(context));
+    return ChangeNotifierProvider<AudioPrompt>(
+        create: (context) => AudioPrompt(
+            existingAudioCache: Provider.of<AudioCache>(context, listen: false),
+            onlyNotifyOnComplete: true),
+        builder: (context, _) => AudioCue(
+            key: Key(key.toString() + stimuli.toString() + "audio"),
+            stimulusPairTarget: stimuli,
+            child: const Center(child: Text('...')),
+            childWhenPromptComplete: _buildStimuliPairChoice(context)));
   }
 
   Widget _buildStimuliPairChoice(BuildContext context) {
     return ChangeNotifierProvider<TrialController>(
       create: (BuildContext context) {
-        return TrialController(distanceThreshold: 2 * _dragIndicatorRadius);
+        return TrialController(distanceThreshold: 1.5 * _dragIndicatorRadius);
       },
       builder: (BuildContext context, _) {
         return Consumer<TrialController>(

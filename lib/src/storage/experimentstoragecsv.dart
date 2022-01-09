@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:touchtracker/src/experimentstorage.dart';
+import 'package:touchtracker/src/storage/experimentstorage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
