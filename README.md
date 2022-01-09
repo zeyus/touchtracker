@@ -14,7 +14,7 @@ mousetrap csv compatible flutter (Android, iOS, Web) touch tracking implementati
 
 ### Try it out
 
-You [run the latest touchtracker](https://zeyus.com/touchtracker/web/index.html) web release to give it a go.
+You can [run the latest touchtracker](https://zeyus.com/touchtracker/web/index.html) web release to give it a go.
 
 ## Future plans
 
