@@ -84,8 +84,8 @@ class StimuliPairChoice extends StatelessWidget {
         width: dragIndicatorRadius * 2,
         height: dragIndicatorRadius * 2,
         child: Draggable<bool>(
+          maxSimultaneousDrags: 1,
           data: true,
-
           // @TODO: Allow color customization.
           child: CircleAvatar(
               radius: dragIndicatorRadius,

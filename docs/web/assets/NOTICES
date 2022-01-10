@@ -6699,6 +6699,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
 flutter_lints
 path_provider
+path_provider_android
+path_provider_ios
 path_provider_linux
 path_provider_macos
 path_provider_windows

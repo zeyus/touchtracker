@@ -76,6 +76,5 @@ class TrialPage extends StatelessWidget {
         );
       },
     );
-    //
   }
 }
