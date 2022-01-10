@@ -51,7 +51,11 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
   final Target _target;
   final PairType _pairType;
 
-  StimulusPairTarget(T1 a, T2 b, this._target, this._pairType) : super(a, b);
+  StimulusPairTarget(T1 a, T2 b, this._target, this._pairType) : super(a, b) {
+    if (a == b) {
+      throw ArgumentError('Targets a and b must not be identical');
+    }
+  }
 
   // static method to create a StimulusPairTarget from a StimulusPair
   static StimulusPairTarget<T1, T2> fromStimulusPair<T1, T2>(

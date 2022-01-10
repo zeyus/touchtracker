@@ -106,6 +106,13 @@ void main() {
         24);
   });
 
+  test(
+      'StimulusPairTarget objects should throw an exception if a and b are identical',
+      () {
+    expect(
+        () => StimulusPairTarget('item1', 'item1', Target.a, PairType.control),
+        throwsA(isA<ArgumentError>()));
+  });
   test('Stimuli object random non-competing pair generates correct type', () {
     Stimuli stimuli = Stimuli();
     StimulusPairTarget pair = stimuli.randomNonPhonologicalPair();
