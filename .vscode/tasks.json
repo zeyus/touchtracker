@@ -27,6 +27,17 @@
 			},
 			"problemMatcher": [],
 			"label": "flutter: flutter build apk"
+		},
+		{
+			"type": "flutter",
+			"command": "flutter",
+			"args": [
+				"build",
+				"web"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"label": "flutter: flutter build web [default]"
 		}
 	]
 }
