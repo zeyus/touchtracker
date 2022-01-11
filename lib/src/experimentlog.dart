@@ -2,36 +2,86 @@ import 'package:flutter/foundation.dart';
 import 'package:touchtracker/src/storage/experimentstorage.dart';
 import 'package:vector_math/vector_math.dart';
 
-// "acc","accuracy","average_response_time","avg_rt","background","bidi",
-// "canvas_backend","clock_backend","color_backend","compensation","coordinates",
-// "correct","correct_button_mousetrap_response","correct_instructions",
-// "correct_mousetrap_response","correct_response","count_block_loop",
-// "count_block_sequence","count_cue","count_end_of_experiment","count_experiment",
-// "count_experimental_loop","count_fixation","count_instructions","count_logger",
-// "count_mousetrap_response","count_reset_feedback","count_stimuli",
-// "count_trial_sequence","cue","datetime","description",
-// "disable_garbage_collection","experiment_file","experiment_path",
-// "font_bold","font_family","font_italic","font_size","font_underline",
-// "foreground","form_clicks","fullscreen","height","initiation_time",
-// "initiation_time_mousetrap_response","keyboard_backend","left_letter",
-// "live_row","live_row_block_loop","live_row_experimental_loop","logfile",
-// "mouse_backend","opensesame_codename","opensesame_version","practice",
-// "repeat_cycle","response","response_end_of_experiment","response_instructions",
-// "response_mousetrap_response","response_time","response_time_end_of_experiment",
-// "response_time_instructions","response_time_mousetrap_response","right_letter",
-// "round_decimals","sampler_backend","sound_buf_size","sound_channels","sound_freq",
-// "sound_sample_size","start","subject_nr","subject_parity","time_block_loop",
-// "time_block_sequence","time_cue","time_end_of_experiment","time_experiment",
-// "time_experimental_loop","time_fixation","time_instructions","time_logger",
-// "time_mousetrap_response","time_reset_feedback","time_stimuli",
-// "time_trial_sequence","timestamps_mousetrap_response","title",
-// "total_correct","total_response_time","total_responses","trial_type",
-// "uniform_coordinates","width","xpos_mousetrap_response",
-// "ypos_mousetrap_response"
-
 /// ExperimentLog is used for keeping a log of pointer tracking data
 /// for later writing to a file.
 ///
+///
+
+// Position tracking class
+@immutable
+class Position {
+  final int time;
+  late final Vector2 coordinates;
+
+  Position(double x, double y, {required this.time}) {
+    coordinates = Vector2(x, y);
+  }
+
+  // wrapper for Vector2 distanceTo
+  double distance(Position other) {
+    return coordinates.distanceTo(other.coordinates);
+  }
+
+  // wrapper for Vector2 angleTo
+  double angle(Position other) {
+    return coordinates.angleTo(other.coordinates);
+  }
+}
+
+@immutable
+class Step {
+  late final Position start;
+  final Position end;
+  late final int duration;
+  late final double distance;
+  late final double velocity;
+  late final double angle;
+
+  Step(this.end, {Position? start}) {
+    this.start = start ?? end;
+    duration = end.time - this.start.time;
+    if (duration < 0) {
+      throw Exception('Step cannot end before it starts, sorry.');
+    }
+    if (duration == 0) {
+      distance = 0;
+      velocity = 0;
+      angle = 0;
+    } else {
+      distance = end.distance(this.start);
+      velocity = distance / duration;
+      angle = end.angle(this.start);
+    }
+  }
+}
+
+// kind of linked list but no need for traversal...might change later.
+class Movement {
+  final List<Step> steps;
+  final int time;
+
+  // time is zero by default, but could be a timestamp if we want to
+  Movement({Position? startPos, this.time = 0, this.steps = const []}) {
+    if (startPos != null) {
+      steps.insert(0, Step(startPos));
+    }
+  }
+
+  void step(Position end) {
+    steps.add(Step(end, start: steps.last.end));
+  }
+
+  double get distance =>
+      steps.fold<double>(0, (sum, step) => sum + step.distance);
+  double get distanceAtoB => steps.first.start.distance(steps.last.end);
+  double get velocity =>
+      steps.fold<double>(0, (sum, step) {
+        return sum + step.velocity;
+      }) /
+      steps.length;
+
+  int get duration => steps.last.end.time - steps.first.start.time;
+}
 
 // @TODO: Remove math logic and decouple as much as possible.
 // maybe define structure using map?
@@ -289,12 +339,6 @@ class ExperimentLog {
     xStart = xPos;
     yStart = yPos;
     _addRow();
-  }
-
-  void debugLog() {
-    if (kDebugMode) {
-      print(_logRows.toString());
-    }
   }
 
   Future<void> flushLog({bool addHeader = false}) async {
