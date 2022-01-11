@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/stimuli.dart';
@@ -6,7 +7,7 @@ import 'package:touchtracker/src/widgets/targetablestimulus.dart';
 
 class StimuliPairChoice extends StatelessWidget {
   final StimulusPairTarget stimuli;
-  final Function(bool isCorrect)? onChoice;
+  final Function(bool isCorrect, {bool endExperiment})? onChoice;
   final Function? onMovementStart;
   final Function(double x, double y)? onMovement;
   final Function(Offset offset)? onMovementCancelled;
@@ -33,6 +34,7 @@ class StimuliPairChoice extends StatelessWidget {
       children: [
         _buildPair(context),
         _buildDragIndicator(context),
+        _buildDebugButtons(context),
       ],
     );
   }
@@ -65,10 +67,11 @@ class StimuliPairChoice extends StatelessWidget {
     );
   }
 
-  void _onChoice(BuildContext context, bool isCorrect) {
+  void _onChoice(BuildContext context, bool isCorrect,
+      {bool endExperiment = false}) {
     Provider.of<TrialController>(context, listen: false)
         .completeTrial(isCorrect);
-    onChoice?.call(isCorrect);
+    onChoice?.call(isCorrect, endExperiment: endExperiment);
   }
 
   Widget _buildDragIndicator(BuildContext context) {
@@ -110,6 +113,24 @@ class StimuliPairChoice extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildDebugButtons(BuildContext context) {
+    if (!kDebugMode) {
+      return Container();
+    }
+    return Row(
+      children: [
+        Align(
+            alignment: Alignment.bottomLeft,
+            child: ElevatedButton(
+              child: const Text('End Experiment'),
+              onPressed: () {
+                _onChoice(context, false, endExperiment: true);
+              },
+            )),
+      ],
     );
   }
 }

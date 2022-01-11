@@ -10,7 +10,7 @@ import 'package:touchtracker/src/widgets/stimulipairchoice.dart';
 
 class TrialPage extends StatelessWidget {
   final StimulusPairTarget stimuli;
-  final void Function(bool isCorrect)? onTrialComplete;
+  final void Function(bool isCorrect, {bool endExperiment})? onTrialComplete;
   final _dragIndicatorRadius = 40.0;
   const TrialPage({Key? key, required this.stimuli, this.onTrialComplete})
       : super(key: key);
@@ -41,11 +41,15 @@ class TrialPage extends StatelessWidget {
               key: Key(key.toString() + stimuli.toString()),
               stimuli: stimuli,
               dragIndicatorRadius: _dragIndicatorRadius,
-              onChoice: (bool isCorrect) {
+              onChoice: (bool isCorrect, {bool endExperiment = false}) {
                 controller.completeTrial(isCorrect);
                 Provider.of<ExperimentLog>(context, listen: false).correct =
                     isCorrect;
                 Provider.of<ExperimentLog>(context, listen: false).endTrial();
+                if (endExperiment) {
+                  onTrialComplete?.call(controller.isCorrect,
+                      endExperiment: true);
+                }
               },
               onMovementStart: () {
                 Provider.of<ExperimentLog>(context, listen: false).startTrial(

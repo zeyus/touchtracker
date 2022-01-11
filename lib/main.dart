@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:device_info_plus/device_info_plus.dart';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
@@ -233,36 +235,53 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         builder: (context, child) => TrialPage(
                             key: Key('TrialPage:$index'),
                             stimuli: targets[index],
-                            onTrialComplete: (bool isCorrect) {
-                              if (controller.page! + 1 < totalPages) {
-                                controller.nextPage(
-                                    duration: const Duration(milliseconds: 1),
-                                    curve: Curves.linear);
-                              } else {
-                                Provider.of<ExperimentLog>(context,
-                                        listen: false)
-                                    .endExperiment();
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          MultiProvider(providers: [
-                                            Provider<ExperimentLog>.value(
-                                                value:
-                                                    Provider.of<ExperimentLog>(
-                                                        context,
-                                                        listen: false)),
-                                            Provider<ExperimentStorage>.value(
-                                                value: Provider.of<
-                                                        ExperimentStorage>(
-                                                    context,
-                                                    listen: false)),
-                                          ], child: const ThankYouWidget())),
-                                );
-                              }
+                            onTrialComplete: (bool isCorrect,
+                                {bool endExperiment = false}) {
+                              _onTrialComplete(context,
+                                  endExperiment: endExperiment);
                             }));
                   });
             }));
+  }
+
+  void _onTrialComplete(BuildContext context, {bool endExperiment = false}) {
+    if (!endExperiment && controller.page! + 1 < totalPages) {
+      controller.nextPage(
+          duration: const Duration(milliseconds: 1), curve: Curves.linear);
+    } else {
+      _endExperiment(context);
+      _goToThankYouPage(context);
+    }
+  }
+
+  void _endExperiment(BuildContext context) {
+    debugPrint("Getting device info...");
+    final deviceInfoPlugin = DeviceInfoPlugin();
+    deviceInfoPlugin.deviceInfo.then((value) {
+      final String deviceInfo = value.toMap().toString();
+
+      debugPrint("Ending experiment...");
+      Provider.of<ExperimentLog>(context, listen: false)
+        ..deviceDPI = MediaQuery.of(context).devicePixelRatio * 160
+        ..deviceViewportWidth = MediaQuery.of(context).size.width
+        ..deviceViewportHeight = MediaQuery.of(context).size.height
+        ..deviceInfo = deviceInfo
+        ..endExperiment();
+    });
+  }
+
+  void _goToThankYouPage(BuildContext context) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+          builder: (context) => MultiProvider(providers: [
+                Provider<ExperimentLog>.value(
+                    value: Provider.of<ExperimentLog>(context, listen: false)),
+                Provider<ExperimentStorage>.value(
+                    value:
+                        Provider.of<ExperimentStorage>(context, listen: false)),
+              ], child: const ThankYouWidget())),
+    );
   }
 }
 

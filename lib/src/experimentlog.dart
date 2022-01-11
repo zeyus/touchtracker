@@ -73,6 +73,12 @@ class ExperimentLog {
   double? stepDistance;
   double? stepVel;
 
+  // Device
+  double? deviceDPI;
+  double? deviceViewportWidth;
+  double? deviceViewportHeight;
+  String? deviceInfo;
+
   // internal
   final List<List<dynamic>> _logRows = [];
   Stopwatch expStopWatch = Stopwatch();
@@ -116,6 +122,11 @@ class ExperimentLog {
     _logRow.add("setpDistance");
     _logRow.add("stepVel");
 
+    _logRow.add("deviceDPI");
+    _logRow.add("deviceVieportWidth");
+    _logRow.add("deviceVieportHeight");
+    _logRow.add("deviceInfo");
+
     _logRows.add(_logRow);
   }
 
@@ -148,6 +159,11 @@ class ExperimentLog {
     _logRow.add(stepAngle);
     _logRow.add(stepDistance);
     _logRow.add(stepVel);
+
+    _logRow.add(deviceDPI);
+    _logRow.add(deviceViewportWidth);
+    _logRow.add(deviceViewportHeight);
+    _logRow.add(deviceInfo);
 
     _logRows.add(_logRow);
   }
@@ -192,6 +208,10 @@ class ExperimentLog {
     expEndTime = DateTime.now();
     addNonTrackingEvent();
     flushLog();
+    deviceDPI = null;
+    deviceViewportWidth = null;
+    deviceViewportHeight = null;
+    deviceInfo = null;
   }
 
   void startTrial({int? trial, String? cue, String? condition}) {
