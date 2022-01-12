@@ -1,7 +1,5 @@
 import 'dart:collection';
 
-import 'package:device_info_plus/device_info_plus.dart';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
@@ -36,10 +34,15 @@ class TouchTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<ExperimentLog>(create: (_) => ExperimentLog('CandyCandle')),
         Provider<ExperimentStorage>(create: (_) => getStorage()),
       ],
-      child: const MaterialApp(title: _title, home: ExperimentStartWidget()),
+      child: Consumer<ExperimentStorage>(builder: (_, storage, __) {
+        return Provider<ExperimentLog>(
+            create: (_) =>
+                ExperimentLog(storage: storage, experimentId: 'CandyCandle'),
+            child: const MaterialApp(
+                title: _title, home: ExperimentStartWidget()));
+      }),
     );
   }
 }
@@ -113,7 +116,10 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                         _formKey.currentState!.validate()) {
                       debugPrint("adding participant $participant");
                       Provider.of<ExperimentLog>(context, listen: false)
-                          .subject = participant;
+                          .subjectId = participant;
+                      // condition, in this case it's always experimental
+                      Provider.of<ExperimentLog>(context, listen: false)
+                          .condition = 'experimental';
                       SystemChrome.setEnabledSystemUIMode(
                           SystemUiMode.immersive);
                       participantController.clear();
@@ -186,8 +192,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
-      Provider.of<ExperimentLog>(context, listen: false).startExperiment(
-          Provider.of<ExperimentStorage>(context, listen: false));
+      Provider.of<ExperimentLog>(context, listen: false).start();
     });
 
     controller.addListener(() {
@@ -255,19 +260,8 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   }
 
   void _endExperiment(BuildContext context) {
-    debugPrint("Getting device info...");
-    final deviceInfoPlugin = DeviceInfoPlugin();
-    deviceInfoPlugin.deviceInfo.then((value) {
-      final String deviceInfo = value.toMap().toString();
-
-      debugPrint("Ending experiment...");
-      Provider.of<ExperimentLog>(context, listen: false)
-        ..deviceDPI = MediaQuery.of(context).devicePixelRatio * 160
-        ..deviceViewportWidth = MediaQuery.of(context).size.width
-        ..deviceViewportHeight = MediaQuery.of(context).size.height
-        ..deviceInfo = deviceInfo
-        ..endExperiment();
-    });
+    debugPrint("Ending experiment...");
+    Provider.of<ExperimentLog>(context, listen: false).end();
   }
 
   void _goToThankYouPage(BuildContext context) {

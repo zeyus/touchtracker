@@ -17,6 +17,34 @@ extension TargetExtension on Target {
   }
 }
 
+extension PairTypeExtension on PairType {
+  static String getType(PairType p) {
+    switch (p) {
+      case PairType.control:
+        return 'control';
+      case PairType.phonoPrime:
+      case PairType.phonoCritical:
+        return 'phono';
+      case PairType.motorPrime:
+      case PairType.motorCritical:
+        return 'motor';
+    }
+  }
+
+  static String getSubType(PairType p) {
+    switch (p) {
+      case PairType.control:
+        return 'control';
+      case PairType.phonoPrime:
+      case PairType.motorPrime:
+        return 'prime';
+      case PairType.phonoCritical:
+      case PairType.motorCritical:
+        return 'critical';
+    }
+  }
+}
+
 class StimulusPair<T1, T2> {
   final T1 a;
   final T2 b;
@@ -99,6 +127,7 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
 
   // getters
   Target get target => _target;
+  Target get competitor => _target == Target.a ? Target.b : Target.a;
   PairType get pairType => _pairType;
 }
 
