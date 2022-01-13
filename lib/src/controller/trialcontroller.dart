@@ -8,6 +8,8 @@ class TrialController with ChangeNotifier {
   bool isComplete = false;
   bool isCorrect = false;
   bool stimuliVisible = false;
+  bool movementCancelled = false;
+  bool trialCompleteCalled = false;
   double distance = 0.0;
   Vector2 curXY = Vector2(0.0, 0.0);
   double distanceThreshold = 40.0;

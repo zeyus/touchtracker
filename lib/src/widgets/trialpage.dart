@@ -39,50 +39,76 @@ class TrialPage extends StatelessWidget {
         return Consumer<TrialController>(
           builder: (BuildContext context, TrialController controller, _) {
             return StimuliPairChoice(
-              key: Key(key.toString() + stimuli.toString()),
-              stimuli: stimuli,
-              dragIndicatorRadius: _dragIndicatorRadius,
-              onChoice: (bool isCorrect, {bool endExperiment = false}) {
-                controller.completeTrial(isCorrect);
-                Provider.of<ExperimentLog>(context, listen: false)
-                    .trialEnd(correct: isCorrect);
-                if (endExperiment) {
-                  onTrialComplete?.call(controller.isCorrect,
-                      endExperiment: true);
-                }
-              },
-              onMovementStart: () {
-                Provider.of<ExperimentLog>(context, listen: false)
-                    .displayDetails(
-                        w: MediaQuery.of(context).size.width,
-                        h: MediaQuery.of(context).size.height,
-                        dpi: MediaQuery.of(context).devicePixelRatio * 160,
-                        // @TODO: allow for web fullscreen (wrap like logwriter).
-                        fullscreen: kIsWeb == false);
+                key: Key(key.toString() + stimuli.toString()),
+                stimuli: stimuli,
+                dragIndicatorRadius: _dragIndicatorRadius,
+                onChoice: (bool isCorrect, {bool endExperiment = false}) {
+                  debugPrint("onchoice complete trial");
+                  controller.completeTrial(isCorrect);
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .trialEnd(correct: isCorrect);
+                  if (endExperiment) {
+                    onTrialComplete?.call(controller.isCorrect,
+                        endExperiment: true);
+                  }
+                  // fix for race condition
+                  // if the movement was cancelled but somehow the
+                  // dragtarget onwillaccept was triggered after
+                  // it has happened before and left the experiment
+                  // stuck on the "complete" page.
+                  if (controller.movementCancelled) {
+                    debugPrint("onchoice calling ontrialcomplete");
+                    controller.trialCompleteCalled = true;
+                    onTrialComplete?.call(controller.isCorrect);
+                  }
+                },
+                onMovementStart: () {
+                  controller.movementCancelled = false;
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .displayDetails(
+                          w: MediaQuery.of(context).size.width,
+                          h: MediaQuery.of(context).size.height,
+                          dpi: MediaQuery.of(context).devicePixelRatio * 160,
+                          // @TODO: allow for web fullscreen (wrap like logwriter).
+                          fullscreen: kIsWeb == false);
 
-                Provider.of<ExperimentLog>(context, listen: false)
-                    .trialStart(stimuli);
-                // this may need to come back if logging isn't correct...
-                // Provider.of<ExperimentLog>(context, listen: false)
-                //    .track(controller.startXY);
-                debugPrint("DragStart");
-              },
-              onMovement: (x, y) {
-                if (controller.isComplete) {
-                  return;
-                }
-                controller.updateDistance(x, y);
-                Provider.of<ExperimentLog>(context, listen: false)
-                    .track(controller.curXY);
-              },
-              onMovementCancelled: (offset) {
-                if (!controller.isComplete) {
-                  controller.updatePosition(offset);
-                } else {
-                  onTrialComplete?.call(controller.isCorrect);
-                }
-              },
-            );
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .trialStart(stimuli);
+                  // this may need to come back if logging isn't correct...
+                  // Provider.of<ExperimentLog>(context, listen: false)
+                  //    .track(controller.startXY);
+                  debugPrint("DragStart");
+                },
+                onMovement: (x, y) {
+                  if (controller.isComplete) {
+                    return;
+                  }
+                  controller.updateDistance(x, y);
+                  Provider.of<ExperimentLog>(context, listen: false)
+                      .track(controller.curXY);
+                },
+                onMovementCancelled: (offset) {
+                  debugPrint("onmovementcancelled");
+                  if (!controller.isComplete) {
+                    controller.updatePosition(offset);
+                    // fix for race condition
+                    // this is only if the movement is cancelled
+                    // before triggering the drag target's onWillAccept.
+                    controller.movementCancelled = true;
+                  } else {
+                    debugPrint("onmovementcancelled complete trial");
+                    controller.trialCompleteCalled = true;
+                    onTrialComplete?.call(controller.isCorrect);
+                  }
+                },
+                onMovementTerminated: () {
+                  debugPrint("onmovementterminated");
+                  if (controller.isComplete &&
+                      !controller.trialCompleteCalled) {
+                    controller.trialCompleteCalled = true;
+                    onTrialComplete?.call(controller.isCorrect);
+                  }
+                });
           },
         );
       },

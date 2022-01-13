@@ -11,6 +11,8 @@ class StimuliPairChoice extends StatelessWidget {
   final Function? onMovementStart;
   final Function(double x, double y)? onMovement;
   final Function(Offset offset)? onMovementCancelled;
+  // either "end" or "completed"...
+  final Function? onMovementTerminated;
   final double dragIndicatorRadius;
   const StimuliPairChoice(
       {Key? key,
@@ -19,6 +21,7 @@ class StimuliPairChoice extends StatelessWidget {
       this.onMovementStart,
       this.onMovement,
       this.onMovementCancelled,
+      this.onMovementTerminated,
       required this.dragIndicatorRadius})
       : super(key: key);
   @override
@@ -110,6 +113,14 @@ class StimuliPairChoice extends StatelessWidget {
           },
           onDraggableCanceled: (Velocity velocity, Offset offset) {
             onMovementCancelled?.call(offset);
+          },
+          onDragCompleted: () {
+            debugPrint("onDragCompleted");
+            onMovementTerminated?.call();
+          },
+          onDragEnd: (_) {
+            debugPrint("onDragEnd");
+            onMovementTerminated?.call();
           },
         ),
       ),
