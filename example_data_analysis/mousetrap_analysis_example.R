@@ -1,7 +1,7 @@
 library(tidyverse)
 library(mousetrap)
 
-raw <- read_csv("./2022-01-13_CandyCandle-emulator2-experimental.csv")
+raw <- read_csv("./example_data_analysis/2022-01-13_CandyCandle-tt-experimental.csv")
 
 mtd <- mt_import_mousetrap(raw, mt_id_label = "log_sequence", verbose = TRUE)
 
@@ -27,3 +27,10 @@ mtd_sym$data %>%
   dplyr::filter(type_c == "phono critical" | type_c == "motor critical") %>%
   group_by(type_c) %>%
   summarise(mean_resp_time = mean(response_time), n = n(), .groups = "keep")
+
+
+mtd_sym$data %>%
+  dplyr::filter(type_c == "phono critical" | type_c == "motor critical") %>%
+  ggplot(aes(type_c, response_time)) +
+  geom_point() +
+  stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 1)
