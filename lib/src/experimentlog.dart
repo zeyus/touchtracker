@@ -1,314 +1,554 @@
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:touchtracker/src/stimuli.dart';
 import 'package:touchtracker/src/storage/experimentstorage.dart';
 import 'package:vector_math/vector_math.dart';
-
-// "acc","accuracy","average_response_time","avg_rt","background","bidi",
-// "canvas_backend","clock_backend","color_backend","compensation","coordinates",
-// "correct","correct_button_mousetrap_response","correct_instructions",
-// "correct_mousetrap_response","correct_response","count_block_loop",
-// "count_block_sequence","count_cue","count_end_of_experiment","count_experiment",
-// "count_experimental_loop","count_fixation","count_instructions","count_logger",
-// "count_mousetrap_response","count_reset_feedback","count_stimuli",
-// "count_trial_sequence","cue","datetime","description",
-// "disable_garbage_collection","experiment_file","experiment_path",
-// "font_bold","font_family","font_italic","font_size","font_underline",
-// "foreground","form_clicks","fullscreen","height","initiation_time",
-// "initiation_time_mousetrap_response","keyboard_backend","left_letter",
-// "live_row","live_row_block_loop","live_row_experimental_loop","logfile",
-// "mouse_backend","opensesame_codename","opensesame_version","practice",
-// "repeat_cycle","response","response_end_of_experiment","response_instructions",
-// "response_mousetrap_response","response_time","response_time_end_of_experiment",
-// "response_time_instructions","response_time_mousetrap_response","right_letter",
-// "round_decimals","sampler_backend","sound_buf_size","sound_channels","sound_freq",
-// "sound_sample_size","start","subject_nr","subject_parity","time_block_loop",
-// "time_block_sequence","time_cue","time_end_of_experiment","time_experiment",
-// "time_experimental_loop","time_fixation","time_instructions","time_logger",
-// "time_mousetrap_response","time_reset_feedback","time_stimuli",
-// "time_trial_sequence","timestamps_mousetrap_response","title",
-// "total_correct","total_response_time","total_responses","trial_type",
-// "uniform_coordinates","width","xpos_mousetrap_response",
-// "ypos_mousetrap_response"
 
 /// ExperimentLog is used for keeping a log of pointer tracking data
 /// for later writing to a file.
 ///
+///
 
-// @TODO: Remove math logic and decouple as much as possible.
-// maybe define structure using map?
-// fix variable scope (only a few need public).
+// Position tracking class
+@immutable
+class Position {
+  final int time;
+  late final Vector2 coordinates;
 
-// requires ExperimentStorage compatible storage backend
-class ExperimentLog {
-  // top level (experiment)
-  String experiment;
-  String? subject;
+  Position(double x, double y, {required this.time}) {
+    coordinates = Vector2(x, y);
+  }
+
+  // wrapper for Vector2 distanceTo
+  double distance(Position other) {
+    return coordinates.distanceTo(other.coordinates);
+  }
+
+  // wrapper for Vector2 angleTo
+  double angle(Position other) {
+    return coordinates.angleTo(other.coordinates);
+  }
+
+  static Position fromVector2(Vector2 v, {required int time}) {
+    return Position(v.x, v.y, time: time);
+  }
+}
+
+@immutable
+class Step {
+  late final Position start;
+  final Position end;
+  late final int duration;
+  late final double distance;
+  late final double velocity;
+  late final double angle;
+
+  Step(this.end, {Position? start}) {
+    this.start = start ?? end;
+    duration = end.time - this.start.time;
+    if (duration < 0) {
+      throw Exception('Step cannot end before it starts, sorry.');
+    }
+    if (duration == 0) {
+      distance = 0;
+      velocity = 0;
+      angle = 0;
+    } else {
+      distance = end.distance(this.start);
+      velocity = distance / duration;
+      angle = end.angle(this.start);
+    }
+  }
+}
+
+// kind of linked list but no need for traversal...might change later.
+class Movement {
+  final List<Step> steps = [];
+  final int time;
+
+  // time is zero by default, but could be a timestamp if we want to
+  Movement({Position? startPos, this.time = 0}) {
+    if (startPos != null) {
+      steps.insert(0, Step(startPos));
+    }
+  }
+
+  void step(Position end) {
+    steps.add(Step(end, start: steps.isNotEmpty ? steps.last.end : null));
+  }
+
+  double get distance =>
+      steps.fold<double>(0, (sum, step) => sum + step.distance);
+  double get distanceDirect => steps.first.start.distance(steps.last.end);
+  double get velocity =>
+      steps.fold<double>(0, (sum, step) {
+        return sum + step.velocity;
+      }) /
+      steps.length;
+
+  int get duration => steps.last.end.time - steps.first.start.time;
+  double get angle => steps.last.end.angle(steps.first.start);
+
+  List<double> get velocities => steps.map((step) => step.velocity).toList();
+  List<double> get distances => steps.map((step) => step.distance).toList();
+  List<double> get angles => steps.map((step) => step.angle).toList();
+  List<int> get times => steps.map((step) => step.end.time).toList();
+
+  List<double> get xs => steps.map((step) => step.end.coordinates.x).toList();
+  List<double> get ys => steps.map((step) => step.end.coordinates.y).toList();
+}
+
+class DataRow {
+  int? logSequence;
+  DateTime? timestamp;
+  String? experiment;
+  bool? practice;
+  DateTime? experimentStartTime;
+  DateTime? experimentEndTime;
+  int? experimentElapsedTime;
+  String? subjectId;
   String? condition;
-  DateTime? expStartTime;
-  DateTime? expEndTime;
-  int? expElapsedTimeMicros;
-  ExperimentStorage? storage;
-
-  // trial level
-  int trial = 0;
-  String? cue;
-
+  String? targetStimulus;
+  Target? targetPosition;
+  String? nonTargetStimulus;
+  Target? nonTargetPosition;
+  int? stimulusATimesDisplayed;
+  int? stimulusBTimesDisplayed;
+  String? trialType;
+  String? trialSubtype;
+  int? trialSequence;
   DateTime? trialStartTime;
   DateTime? trialEndTime;
-  int? trialElapsedTimeMicros;
-
-  double? xStart;
-  double? yStart;
-  double? xEnd;
-  double? yEnd;
-  double? avgVel;
-  List<double> trialVelocities = [];
-
+  int? trialElapsedTime;
   bool? correct;
-
-  // movement level
-
-  double? xPos;
-  double? yPos;
-  double? stepAngle;
-  double? stepDistance;
-  double? stepVel;
-
-  // Device
-  double? deviceDPI;
-  double? deviceViewportWidth;
-  double? deviceViewportHeight;
+  int? responseTime;
+  double? responseTimeAverage;
+  double? velocityAverage;
+  double? distanceStepAverage;
+  double? distanceTotal;
+  double? distanceDirect;
+  double? angleDirect;
+  List<int>? timestampsTracking = [];
+  List<double>? xposTracking = [];
+  List<double>? yposTracking = [];
+  List<double>? velocityTracking = [];
+  List<double>? distanceTracking = [];
+  List<double>? angleTracking = [];
+  bool? fullscreen;
+  double? viewportWidth;
+  double? viewportHeight;
+  double? deviceDpi;
   String? deviceInfo;
 
-  // internal
-  final List<List<dynamic>> _logRows = [];
-  Stopwatch expStopWatch = Stopwatch();
-  Stopwatch trialStopWatch = Stopwatch();
-  int logSequence = 0;
-  int trialSequence = 0;
+  static const List<List<String>> colMap = [
+    ['logSequence', 'log_sequence'],
+    ['timestamp', 'timestamp'],
+    ['experiment', 'experiment'],
+    ['practice', 'practice'],
+    ['experimentStartTime', 'experiment_start_time'],
+    ['experimentEndTime', 'experiment_end_time'],
+    ['experimentElapsedTime', 'experiment_elapsed_time'],
+    ['subjectId', 'subject_id'],
+    ['condition', 'condition'],
+    ['targetStimulus', 'target_stimulus'],
+    ['targetPosition', 'target_position'],
+    ['nonTargetStimulus', 'non_target_stimulus'],
+    ['nonTargetPosition', 'non_target_position'],
+    ['stimulusATimesDisplayed', 'stimulus_a_times_displayed'],
+    ['stimulusBTimesDisplayed', 'stimulus_b_times_displayed'],
+    ['trialType', 'trial_type'],
+    ['trialSubtype', 'trial_subtype'],
+    ['trialSequence', 'trial_sequence'],
+    ['trialStartTime', 'trial_start_time'],
+    ['trialEndTime', 'trial_end_time'],
+    ['trialElapsedTime', 'trial_elapsed_time'],
+    ['correct', 'correct'],
+    ['responseTime', 'response_time'],
+    ['responseTimeAverage', 'response_time_average'],
+    ['velocityAverage', 'velocity_average'],
+    ['distanceStepAverage', 'distance_step_average'],
+    ['distanceTotal', 'distance_total'],
+    ['distanceDirect', 'distance_direct'],
+    ['angleDirect', 'angle_direct'],
+    ['timestampsTracking', 'timestamps_tracking'],
+    ['xposTracking', 'xpos_tracking'],
+    ['yposTracking', 'ypos_tracking'],
+    ['velocityTracking', 'velocity_tracking'],
+    ['distanceTracking', 'distance_tracking'],
+    ['angleTracking', 'angle_tracking'],
+    ['fullscreen', 'fullscreen'],
+    ['viewportWidth', 'viewport_width'],
+    ['viewportHeight', 'viewport_height'],
+    ['deviceDpi', 'device_dpi'],
+    ['deviceInfo', 'device_info'],
+  ];
 
-  Vector2? posStart;
-  Vector2? posEnd;
-  Vector2? pos;
-
-  ExperimentLog(this.experiment,
-      {this.condition, DateTime? expStartTime, this.subject});
-
-  void _addHeaderRow() {
-    List<dynamic> _logRow = [];
-    _logRow.add("logSequence");
-    _logRow.add("experiment");
-    _logRow.add("subject");
-    _logRow.add("condition");
-    _logRow.add("expStartTime");
-    _logRow.add("expEndTime");
-    _logRow.add("expElapsedTimeMicros");
-
-    _logRow.add("trial");
-    _logRow.add("trialSequence");
-    _logRow.add("trialStartTime");
-    _logRow.add("trialEndTime");
-    _logRow.add("trialElapsedTimeMicros");
-    _logRow.add("cue");
-    _logRow.add("xStart");
-    _logRow.add("yStart");
-    _logRow.add("xEnd");
-    _logRow.add("yEnd");
-    _logRow.add("avgVel");
-    _logRow.add("correct");
-
-    _logRow.add("xPos");
-    _logRow.add("yPos");
-    _logRow.add("stepAngle");
-    _logRow.add("setpDistance");
-    _logRow.add("stepVel");
-
-    _logRow.add("deviceDPI");
-    _logRow.add("deviceVieportWidth");
-    _logRow.add("deviceVieportHeight");
-    _logRow.add("deviceInfo");
-
-    _logRows.add(_logRow);
+  static DataRow fromDataRow(DataRow dr) {
+    return DataRow()
+      ..logSequence = dr.logSequence
+      ..timestamp = dr.timestamp
+      ..experiment = dr.experiment
+      ..practice = dr.practice
+      ..experimentStartTime = dr.experimentStartTime
+      ..experimentEndTime = dr.experimentEndTime
+      ..experimentElapsedTime = dr.experimentElapsedTime
+      ..subjectId = dr.subjectId
+      ..condition = dr.condition
+      ..targetStimulus = dr.targetStimulus
+      ..targetPosition = dr.targetPosition
+      ..nonTargetStimulus = dr.nonTargetStimulus
+      ..nonTargetPosition = dr.nonTargetPosition
+      ..stimulusATimesDisplayed = dr.stimulusATimesDisplayed
+      ..stimulusBTimesDisplayed = dr.stimulusBTimesDisplayed
+      ..trialType = dr.trialType
+      ..trialSubtype = dr.trialSubtype
+      ..trialSequence = dr.trialSequence
+      ..trialStartTime = dr.trialStartTime
+      ..trialEndTime = dr.trialEndTime
+      ..trialElapsedTime = dr.trialElapsedTime
+      ..correct = dr.correct
+      ..responseTime = dr.responseTime
+      ..responseTimeAverage = dr.responseTimeAverage
+      ..velocityAverage = dr.velocityAverage
+      ..distanceStepAverage = dr.distanceStepAverage
+      ..distanceTotal = dr.distanceTotal
+      ..distanceDirect = dr.distanceDirect
+      ..angleDirect = dr.angleDirect
+      ..timestampsTracking = dr.timestampsTracking
+      ..xposTracking = dr.xposTracking
+      ..yposTracking = dr.yposTracking
+      ..velocityTracking = dr.velocityTracking
+      ..distanceTracking = dr.distanceTracking
+      ..angleTracking = dr.angleTracking
+      ..fullscreen = dr.fullscreen
+      ..viewportWidth = dr.viewportWidth
+      ..viewportHeight = dr.viewportHeight
+      ..deviceDpi = dr.deviceDpi
+      ..deviceInfo = dr.deviceInfo;
   }
 
-  void _addRow() {
-    logSequence += 1;
-    List<dynamic> _logRow = [];
-    _logRow.add(logSequence);
-    _logRow.add(experiment);
-    _logRow.add(subject);
-    _logRow.add(condition);
-    _logRow.add(expStartTime);
-    _logRow.add(expEndTime);
-    _logRow.add(expElapsedTimeMicros);
+  static List<String> get colNames => colMap.map((col) => col[1]).toList();
 
-    _logRow.add(trial);
-    _logRow.add(trialSequence);
-    _logRow.add(trialStartTime);
-    _logRow.add(trialEndTime);
-    _logRow.add(trialElapsedTimeMicros);
-    _logRow.add(cue);
-    _logRow.add(xStart);
-    _logRow.add(yStart);
-    _logRow.add(xEnd);
-    _logRow.add(yEnd);
-    _logRow.add(avgVel);
-    _logRow.add(correct);
+  List<String?> get colValues => colMap.map((col) => getValue(col[0])).toList();
 
-    _logRow.add(xPos);
-    _logRow.add(yPos);
-    _logRow.add(stepAngle);
-    _logRow.add(stepDistance);
-    _logRow.add(stepVel);
+  String? getValue(String col) {
+    switch (col) {
+      case 'logSequence':
+        return logSequence.toString();
+      case 'timestamp':
+        return timestamp.toString();
+      case 'experiment':
+        return experiment;
+      case 'practice':
+        return practice.toString();
+      case 'experimentStartTime':
+        return experimentStartTime?.toIso8601String();
+      case 'experimentEndTime':
+        return experimentEndTime?.toIso8601String();
+      case 'experimentElapsedTime':
+        return experimentElapsedTime.toString();
+      case 'subjectId':
+        return subjectId;
+      case 'condition':
+        return condition;
+      case 'targetStimulus':
+        return targetStimulus;
+      case 'targetPosition':
+        return targetPosition.toString();
+      case 'nonTargetStimulus':
+        return nonTargetStimulus;
+      case 'nonTargetPosition':
+        return nonTargetPosition.toString();
+      case 'stimulusATimesDisplayed':
+        return stimulusATimesDisplayed.toString();
+      case 'stimulusBTimesDisplayed':
+        return stimulusBTimesDisplayed.toString();
+      case 'trialType':
+        return trialType;
+      case 'trialSubtype':
+        return trialSubtype;
+      case 'trialSequence':
+        return trialSequence.toString();
+      case 'trialStartTime':
+        return trialStartTime.toString();
+      case 'trialEndTime':
+        return trialEndTime.toString();
+      case 'trialElapsedTime':
+        return trialElapsedTime.toString();
+      case 'correct':
+        return correct.toString();
+      case 'responseTime':
+        return responseTime.toString();
+      case 'responseTimeAverage':
+        return responseTimeAverage.toString();
+      case 'velocityAverage':
+        return velocityAverage.toString();
+      case 'distanceStepAverage':
+        return distanceStepAverage.toString();
+      case 'distanceTotal':
+        return distanceTotal.toString();
+      case 'distanceDirect':
+        return distanceDirect.toString();
+      case 'angleDirect':
+        return angleDirect.toString();
+      case 'timestampsTracking':
+        // output to miliseconds
+        return timestampsTracking?.map((e) => (e / 1000).toString()).join(',');
+      case 'xposTracking':
+        return xposTracking.toString();
+      case 'yposTracking':
+        return yposTracking.toString();
+      case 'velocityTracking':
+        return velocityTracking.toString();
+      case 'distanceTracking':
+        return distanceTracking.toString();
+      case 'angleTracking':
+        return angleTracking.toString();
+      case 'fullscreen':
+        return fullscreen.toString();
+      case 'viewportWidth':
+        return viewportWidth.toString();
+      case 'viewportHeight':
+        return viewportHeight.toString();
+      case 'deviceDpi':
+        return deviceDpi.toString();
+      case 'deviceInfo':
+        return deviceInfo;
+      default:
+        throw Exception('Unknown column name: $col');
+    }
+  }
+}
 
-    _logRow.add(deviceDPI);
-    _logRow.add(deviceViewportWidth);
-    _logRow.add(deviceViewportHeight);
-    _logRow.add(deviceInfo);
+class DataLog {
+  final DataRow _template = DataRow();
+  DataRow? _trialTemplate;
+  final List<DataRow> _data = [];
+  final Stopwatch _experimentTimer = Stopwatch();
+  final Stopwatch _trialTimer = Stopwatch();
+  Movement? _trialSteps;
 
-    _logRows.add(_logRow);
+  void add(DataRow dr) {
+    _data.add(dr);
   }
 
-  // @TODO: Implement
-  // ignore: unused_element
-  void _trialReset() {
-    throw UnimplementedError();
+  set deviceInfo(String deviceInfo) {
+    _template.deviceInfo = deviceInfo;
   }
 
-  // @TODO: Implement
-  // ignore: unused_element
-  void _experimentReset() {
-    throw UnimplementedError();
+  void start(String experimentId, String subjectId, String condition) {
+    _data.clear();
+    _template
+      ..experiment = experimentId
+      ..timestamp = DateTime.now()
+      ..subjectId = subjectId
+      ..condition = condition
+      ..logSequence = 0
+      ..experimentElapsedTime = 0
+      ..experimentStartTime = DateTime.now();
+    _experimentTimer.reset();
+    _experimentTimer.start();
   }
 
-  void startExperiment(ExperimentStorage storage,
-      {String? subject, String? condition}) {
-    logSequence = 0;
-    trial = 0;
-    trialVelocities = [];
-    this.storage = storage;
+  void trialStart({required StimulusPairTarget stimuli}) {
+    _trialTemplate = DataRow.fromDataRow(_template);
+    _trialTemplate!
+      ..timestamp = DateTime.now()
+      ..trialType = PairTypeExtension.getType(stimuli.pairType)
+      ..trialSubtype = PairTypeExtension.getSubType(stimuli.pairType)
+      ..trialSequence = 0
+      ..trialElapsedTime = 0
+      ..trialStartTime = DateTime.now()
+      ..targetStimulus = stimuli.getTargetStimulus()
+      ..targetPosition = stimuli.target
+      ..nonTargetStimulus = stimuli.getCompetitorStimulus()
+      ..nonTargetPosition = stimuli.competitor;
+    _trialSteps = Movement();
+    _trialTimer.reset();
+    _trialTimer.start();
+  }
+
+  void move(Vector2 pos) {
+    _trialSteps!
+        .step(Position.fromVector2(pos, time: _trialTimer.elapsedMicroseconds));
+  }
+
+  DataRow trialEnd(bool correct) {
+    _trialTemplate!
+      ..timestamp = DateTime.now()
+      ..trialEndTime = DateTime.now()
+      ..trialElapsedTime = _trialTimer.elapsedMilliseconds
+      ..experimentElapsedTime = _experimentTimer.elapsedMilliseconds
+      ..correct = correct;
+    _trialTimer.stop();
+
+    final dr = DataRow.fromDataRow(_trialTemplate!);
+    dr
+      ..velocityAverage = _trialSteps!.velocity
+      ..distanceTotal = _trialSteps!.distance
+      ..distanceDirect = _trialSteps!.distanceDirect
+      ..angleDirect = _trialSteps!.angle
+      ..timestampsTracking = _trialSteps!.times
+      ..xposTracking = _trialSteps!.xs
+      ..yposTracking = _trialSteps!.ys
+      ..velocityTracking = _trialSteps!.velocities
+      ..distanceTracking = _trialSteps!.distances
+      ..angleTracking = _trialSteps!.angles
+      ..responseTime = _trialSteps!.duration;
+
+    add(dr);
+    return dr;
+  }
+
+  void end() {
+    _template
+      ..timestamp = DateTime.now()
+      ..experimentEndTime = DateTime.now()
+      ..experimentElapsedTime = _experimentTimer.elapsedMilliseconds;
+    _experimentTimer.stop();
+    int counter = 0;
+    int responseTimes = 0;
+    for (var row in _data) {
+      responseTimes += row.responseTime ?? 0;
+      row
+        ..logSequence = counter
+        ..experimentEndTime = _template.experimentEndTime
+        ..responseTimeAverage = responseTimes / counter + 1;
+      counter++;
+    }
+  }
+
+  void displayDetails(
+      {required double w,
+      required double h,
+      required double dpi,
+      bool fullscreen = false}) {
+    _template
+      ..fullscreen = fullscreen
+      ..viewportWidth = w
+      ..viewportHeight = h
+      ..deviceDpi = dpi;
+    _trialTemplate
+      ?..fullscreen = fullscreen
+      ..viewportWidth = w
+      ..viewportHeight = h
+      ..deviceDpi = dpi;
+  }
+
+  List<List<String?>> get data {
+    final rows = <List<String?>>[];
+    for (var row in _data) {
+      rows.add(row.colValues);
+    }
+    return rows;
+  }
+}
+
+class ExperimentLog {
+  final ExperimentStorage storage;
+  final String experimentId;
+  final _dataLog = DataLog();
+  static const bool _saveOnTrack = false;
+  static const bool _rateLimit = false;
+  static const int _sampleRateMs = 5;
+  final Stopwatch _rateLimiter = Stopwatch();
+  int _debugLoggedSamples = 0;
+  int _debugDroppedSamples = 0;
+  String subjectId = '';
+  String condition = '';
+  ExperimentLog({required this.storage, required this.experimentId});
+
+  String get storageKey {
+    return '$experimentId-$subjectId-$condition';
+  }
+
+  void start() {
+    if (_rateLimit) {
+      if (kDebugMode) {
+        _debugLoggedSamples = 0;
+        _debugDroppedSamples = 0;
+      }
+      _rateLimiter.reset();
+      _rateLimiter.start();
+    }
     storage.clear();
-    if (subject != null) {
-      this.subject = subject;
-    }
-    if (condition != null) {
-      this.condition = condition;
-    }
-    this.storage?.key = experiment + '-' + this.subject!;
-    debugPrint("Experiment started");
-    expStartTime = expStartTime ?? DateTime.now();
-    _addHeaderRow();
-    expStopWatch.start();
-  }
-
-  void endExperiment() {
-    debugPrint("Experiment ended");
-    expStopWatch.stop();
-    expStopWatch.reset();
-    expElapsedTimeMicros = expStopWatch.elapsedMicroseconds;
-    expEndTime = DateTime.now();
-    addNonTrackingEvent();
-    flushLog();
-    deviceDPI = null;
-    deviceViewportWidth = null;
-    deviceViewportHeight = null;
-    deviceInfo = null;
-  }
-
-  void startTrial({int? trial, String? cue, String? condition}) {
-    debugPrint("Trial started");
-    trialStartTime = DateTime.now();
-    this.cue = cue;
-    this.condition = condition;
-    trialStopWatch.start();
-
-    this.trial = trial ?? this.trial + 1;
-    trialSequence = 0;
-  }
-
-  void endTrial() {
-    debugPrint("Trial ended");
-    trialStopWatch.stop();
-    trialEndTime = DateTime.now();
-    xEnd = xPos;
-    yEnd = yPos;
-    addNonTrackingEvent();
-    flushLog();
-    trialEndTime = null;
-    xEnd = null;
-    yEnd = null;
-    trialSequence = 0;
-    condition = null;
-    cue = null;
-
-    correct = null;
-    trialStopWatch.reset();
-  }
-
-  double trialVelocityAverage() {
-    int n = trialVelocities.length;
-
-    return n > 0 ? trialVelocities.reduce((a, b) => a + b) / n : 0;
-  }
-
-  void addTrackingEvent(Vector2 pos) {
-    final int prevStepTime = trialElapsedTimeMicros ?? 0;
-    expElapsedTimeMicros = expStopWatch.elapsedMicroseconds;
-    trialElapsedTimeMicros = trialStopWatch.elapsedMicroseconds;
-
-    if (trialSequence == 0) {
-      posStart = pos;
-      xStart = pos.x;
-      yStart = pos.y;
-      stepAngle = null;
-      stepVel = 0.0;
-      avgVel = 0.0;
-      stepDistance = 0.0;
-      trialVelocities = [];
-    } else {
-      final int stepTime = trialElapsedTimeMicros! - prevStepTime;
-      stepAngle = degrees(this.pos!.angleTo(pos));
-      stepDistance = this.pos!.distanceTo(pos);
-      stepVel = stepDistance! / stepTime;
-      trialVelocities.add(stepVel!);
-      avgVel = trialVelocityAverage();
+    if (_saveOnTrack) {
+      _writeHeader();
     }
 
-    trialSequence += 1;
+    _dataLog.start(experimentId, subjectId, condition);
 
-    this.pos = pos;
-    xPos = pos.x;
-    yPos = pos.y;
-
-    _addRow();
+    // get device information from plugin
+    final deviceInfoPlugin = DeviceInfoPlugin();
+    deviceInfoPlugin.deviceInfo.then((value) {
+      _dataLog.deviceInfo = value.toMap().toString();
+    });
   }
 
-  void addNonTrackingEvent() {
-    stepAngle = null;
-    stepVel = 0.0;
-    stepDistance = 0.0;
-    xStart = xPos;
-    yStart = yPos;
-    _addRow();
+  void _write(List<String?> data) {
+    storage.flush([data], key: storageKey);
   }
 
-  void debugLog() {
+  void _writeAll(List<List<String?>> data) {
+    data.insert(0, _header);
+    storage.flush(data, key: storageKey);
+  }
+
+  void _writeRow(DataRow dr) {
+    _write(dr.colValues);
+  }
+
+  void _writeHeader() {
+    _write(_header);
+  }
+
+  List<String> get _header {
+    return DataRow.colNames;
+  }
+
+  void displayDetails(
+      {required double w,
+      required double h,
+      required double dpi,
+      bool fullscreen = false}) {
+    _dataLog.displayDetails(w: w, h: h, dpi: dpi, fullscreen: fullscreen);
+  }
+
+  void track(Vector2 pos) {
+    if (_rateLimit && _rateLimiter.elapsedMilliseconds < _sampleRateMs) {
+      if (kDebugMode) {
+        _debugDroppedSamples++;
+      }
+      return;
+    } else if (_rateLimit) {
+      if (kDebugMode) {
+        _debugLoggedSamples++;
+      }
+      _rateLimiter.reset();
+      _rateLimiter.start();
+    }
+    _dataLog.move(pos);
+  }
+
+  void trialStart(StimulusPairTarget stimuli) {
+    _dataLog.trialStart(stimuli: stimuli);
+  }
+
+  void trialEnd({bool correct = false}) {
+    DataRow dr = _dataLog.trialEnd(correct);
+    if (_saveOnTrack) {
+      _writeRow(dr);
+    }
     if (kDebugMode) {
-      print(_logRows.toString());
+      print(
+          'logged $_debugLoggedSamples samples, dropped $_debugDroppedSamples');
     }
   }
 
-  Future<void> flushLog({bool addHeader = false}) async {
-    await storage?.flush(_logRows);
-    _logRows.clear();
-    if (addHeader) {
-      _addHeaderRow();
+  void end() {
+    _dataLog.end();
+    if (!_saveOnTrack) {
+      _writeAll(_dataLog.data);
     }
   }
-
-  Future<void> writeLog() async {
-    await storage?.write(_logRows);
-  }
-
-  // _logrows getter
-  List<List<dynamic>> get logRows => _logRows;
 }

@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/audioprompt.dart';
@@ -43,21 +44,27 @@ class TrialPage extends StatelessWidget {
               dragIndicatorRadius: _dragIndicatorRadius,
               onChoice: (bool isCorrect, {bool endExperiment = false}) {
                 controller.completeTrial(isCorrect);
-                Provider.of<ExperimentLog>(context, listen: false).correct =
-                    isCorrect;
-                Provider.of<ExperimentLog>(context, listen: false).endTrial();
+                Provider.of<ExperimentLog>(context, listen: false)
+                    .trialEnd(correct: isCorrect);
                 if (endExperiment) {
                   onTrialComplete?.call(controller.isCorrect,
                       endExperiment: true);
                 }
               },
               onMovementStart: () {
-                Provider.of<ExperimentLog>(context, listen: false).startTrial(
-                  cue: stimuli.toString(),
-                  condition: stimuli.pairType.toString(),
-                );
                 Provider.of<ExperimentLog>(context, listen: false)
-                    .addTrackingEvent(controller.startXY);
+                    .displayDetails(
+                        w: MediaQuery.of(context).size.width,
+                        h: MediaQuery.of(context).size.height,
+                        dpi: MediaQuery.of(context).devicePixelRatio * 160,
+                        // @TODO: allow for web fullscreen (wrap like logwriter).
+                        fullscreen: kIsWeb == false);
+
+                Provider.of<ExperimentLog>(context, listen: false)
+                    .trialStart(stimuli);
+                // this may need to come back if logging isn't correct...
+                // Provider.of<ExperimentLog>(context, listen: false)
+                //    .track(controller.startXY);
                 debugPrint("DragStart");
               },
               onMovement: (x, y) {
@@ -66,7 +73,7 @@ class TrialPage extends StatelessWidget {
                 }
                 controller.updateDistance(x, y);
                 Provider.of<ExperimentLog>(context, listen: false)
-                    .addTrackingEvent(controller.curXY);
+                    .track(controller.curXY);
               },
               onMovementCancelled: (offset) {
                 if (!controller.isComplete) {
