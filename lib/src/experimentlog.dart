@@ -292,7 +292,8 @@ class DataRow {
       case 'angleDirect':
         return angleDirect.toString();
       case 'timestampsTracking':
-        return timestampsTracking.toString();
+        // output to miliseconds
+        return timestampsTracking?.map((e) => (e / 1000).toString()).join(',');
       case 'xposTracking':
         return xposTracking.toString();
       case 'yposTracking':
@@ -314,7 +315,7 @@ class DataRow {
       case 'deviceInfo':
         return deviceInfo;
       default:
-        return "error invalid column $col";
+        throw Exception('Unknown column name: $col');
     }
   }
 }

@@ -62,8 +62,9 @@ class TrialPage extends StatelessWidget {
 
                 Provider.of<ExperimentLog>(context, listen: false)
                     .trialStart(stimuli);
-                Provider.of<ExperimentLog>(context, listen: false)
-                    .track(controller.startXY);
+                // this may need to come back if logging isn't correct...
+                // Provider.of<ExperimentLog>(context, listen: false)
+                //    .track(controller.startXY);
                 debugPrint("DragStart");
               },
               onMovement: (x, y) {
