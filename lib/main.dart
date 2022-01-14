@@ -56,11 +56,13 @@ class ExperimentStartWidget extends StatefulWidget {
 class _ExperimentStartWidget extends State<ExperimentStartWidget> {
   final _formKey = GlobalKey<FormState>();
   final participantController = TextEditingController();
+  String _selectedGender = '';
 
   @override
   void dispose() {
     // Clean up the controller when the widget is disposed.
     participantController.dispose();
+
     super.dispose();
   }
 
@@ -90,19 +92,107 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                 ),
                 SizedBox(
                   width: 250,
-                  child: TextFormField(
-                    controller: participantController,
-                    decoration: const InputDecoration(
-                      labelText: "Participant ID",
-                    ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) {
-                        return "Participant ID cannot be empty";
-                      } else {
-                        return null;
-                      }
-                    },
-                    keyboardType: TextInputType.name,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: participantController,
+                        decoration: const InputDecoration(
+                          labelText: "Participant ID",
+                        ),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return "Participant ID cannot be empty";
+                          } else {
+                            return null;
+                          }
+                        },
+                        keyboardType: TextInputType.name,
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedGender,
+                              items: const <DropdownMenuItem<String>>[
+                                DropdownMenuItem<String>(
+                                  value: '',
+                                  enabled: true,
+                                  child: Text(
+                                    'Select your gender...',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'f',
+                                  child: Text('Female'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'm',
+                                  child: Text('Male'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'n',
+                                  child: Text('Non-binary'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'o',
+                                  child: Text('Other (please specify)'),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value == 'o') {
+                                  showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: const Text('Other'),
+                                          content: TextFormField(
+                                            decoration: const InputDecoration(
+                                              labelText: 'Please specify',
+                                            ),
+                                            validator: (val) {
+                                              if (val == null || val.isEmpty) {
+                                                return "Please specify";
+                                              } else {
+                                                return null;
+                                              }
+                                            },
+                                            keyboardType: TextInputType.text,
+                                          ),
+                                          actions: <Widget>[
+                                            ElevatedButton(
+                                              child: const Text('Cancel'),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                            ElevatedButton(
+                                              child: const Text('OK'),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                }
+                                setState(() {
+                                  _selectedGender = value!;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextField(
+                        decoration: const InputDecoration(labelText: "Age"),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.digitsOnly
+                        ], // Only numbers can be entered
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 50),
