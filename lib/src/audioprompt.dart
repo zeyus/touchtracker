@@ -17,7 +17,7 @@ class AudioPrompt with ChangeNotifier {
   final String assetPath = 'audio/';
   final String fileExtension = '.wav';
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
-  static const duration = 1500;
+  static const duration = 1250;
   late final bool onlyNotifyOnComplete;
   late final AudioCache audioCache;
   late final String _playerId;
