@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -14,8 +14,8 @@ class AudioPromptException implements Exception {
 }
 
 class AudioPrompt with ChangeNotifier {
-  final String assetPath = 'audio/';
-  final String fileExtension = '.wav';
+  static const String assetPath = 'audio/';
+  static const String fileExtension = '.wav';
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
   static const duration = 1250;
   late final bool onlyNotifyOnComplete;
@@ -43,25 +43,29 @@ class AudioPrompt with ChangeNotifier {
     if (onPlayComplete != null) {
       this.onPlayComplete = onPlayComplete;
     }
-    // if we get a working state listener, we can use it to notify the user
-    // but for now, we need to manually handle it with a future // timer.
-    //audioCache.fixedPlayer?.onPlayerStateChanged.listen(stateChangeListener);
   }
 
   static AudioCache createAudioCache(
       {String? playerId = 'TouchTrackerAudioPrompt'}) {
-    final PlayerMode mode;
-    if (kIsWeb) {
-      mode = PlayerMode.MEDIA_PLAYER;
-    } else {
-      mode = PlayerMode.LOW_LATENCY;
-    }
-    return AudioCache(fixedPlayer: AudioPlayer(mode: mode, playerId: playerId));
+    // const PlayerMode mode =
+    //    kIsWeb ? PlayerMode.MEDIA_PLAYER : PlayerMode.LOW_LATENCY;
+    // return AudioCache(fixedPlayer: AudioPlayer(mode: mode, playerId: playerId));
+    return AudioCache();
   }
 
-  AudioPlayer get player => audioCache.fixedPlayer as AudioPlayer;
+  static PlayerMode getPlayerMode() {
+    return kIsWeb ? PlayerMode.MEDIA_PLAYER : PlayerMode.LOW_LATENCY;
+  }
 
-  Future<AudioPlayer> play(StimulusPairTarget prompt) async {
+  static Future<void> cacheAssets(AudioCache ac) async {
+    await ac.loadAll(Stimuli.stimuli
+        .map<String>((String s) => assetPath + s + fileExtension)
+        .toList());
+  }
+
+  // AudioPlayer get player => audioCache.fixedPlayer as AudioPlayer;
+
+  Future<void> play(StimulusPairTarget prompt) async {
     if (_playerState == PlayerState.PLAYING) {
       return Future.error(
           AudioPromptException('AudioPrompt is already playing'));
@@ -71,21 +75,23 @@ class AudioPrompt with ChangeNotifier {
     String filename = '$assetPath$target$fileExtension';
     debugPrint("playing $filename for $prompt");
     // dirty web + low_latency hack
-    int currentTime = DateTime.now().millisecondsSinceEpoch;
 
     // Manually set player state to playing
     stateChangeListener(PlayerState.PLAYING);
+    // just in case
+    // await audioCache.fixedPlayer?.stop();
 
-    AudioPlayer player = await audioCache.play(filename);
-    int diff = DateTime.now().millisecondsSinceEpoch - currentTime;
+    await audioCache.play(filename, mode: getPlayerMode());
 
-    // manually trigger state change
-    Future.delayed(Duration(milliseconds: max(duration - diff, 1)), () async {
-      // just in case...
-      await audioCache.fixedPlayer?.stop();
+    Future.delayed(const Duration(milliseconds: duration), () async {
       stateChangeListener(PlayerState.COMPLETED);
     });
-    return player;
+  }
+
+  // to forward calls from audio player
+  void playerStateListener(_) {
+    debugPrint("platform called player complete");
+    stateChangeListener(PlayerState.COMPLETED);
   }
 
   void stateChangeListener(PlayerState state) {

@@ -189,6 +189,10 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   void initState() {
     super.initState();
     audioCache = AudioPrompt.createAudioCache();
+    // this may take a while, might need a loading screen.
+    AudioPrompt.cacheAssets(audioCache).then((_) {
+      debugPrint("finished loading audio assets");
+    });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
@@ -204,7 +208,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   @override
   void dispose() {
-    audioCache.fixedPlayer?.dispose();
+    //audioCache.fixedPlayer?.dispose();
     // Clean up the controller when the widget is disposed.
     controller.dispose();
     super.dispose();
