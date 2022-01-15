@@ -1,12 +1,9 @@
 import 'dart:collection';
-
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/storage/experimentstorage.dart';
 
-import 'package:touchtracker/src/audioprompt.dart';
 import 'package:touchtracker/src/widgets/trialpage.dart';
 
 import 'package:flutter/material.dart';
@@ -32,6 +29,7 @@ class TouchTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // TODO: add audio prompt provider here, we only need one instance now.
     return MultiProvider(
       providers: [
         Provider<ExperimentStorage>(create: (_) => getStorage()),
@@ -179,20 +177,12 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
   var currentPageValue = 0.0;
   var totalPages = 0.0;
 
-  // one global audiocache for all widgets
-  late final AudioCache audioCache;
-
   PageController controller =
       PageController(viewportFraction: 1, keepPage: true);
 
   @override
   void initState() {
     super.initState();
-    audioCache = AudioPrompt.createAudioCache();
-    // this may take a while, might need a loading screen.
-    AudioPrompt.cacheAssets(audioCache).then((_) {
-      debugPrint("finished loading audio assets");
-    });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       debugPrint("Starting experiment log...");
@@ -208,7 +198,6 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
 
   @override
   void dispose() {
-    //audioCache.fixedPlayer?.dispose();
     // Clean up the controller when the widget is disposed.
     controller.dispose();
     super.dispose();
@@ -238,7 +227,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                   itemBuilder: (context, index) {
                     return MultiProvider(
                         providers: [
-                          Provider<AudioCache>.value(value: audioCache),
+                          // Provider<AudioCache>.value(value: audioCache),
                           Provider<Stimuli>.value(value: widget._stimuli),
                         ],
                         builder: (context, child) => TrialPage(
