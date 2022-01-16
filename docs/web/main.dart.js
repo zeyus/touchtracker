@@ -69096,7 +69096,7 @@ abS(a,b){var s=0,r=A.E(t.H),q,p=this,o,n,m
 var $async$dB=A.A(function(c,d){if(c===1)return A.B(d,r)
 while(true)switch(s){case 0:if(p.b===B.ku){q=A.Zy(new A.ED("AudioPrompt is already playing"),null,t.H)
 s=1
-break}o="audio/"+(b.c===B.ap?b.a:b.b)+".wav"
+break}o="assets/audio/"+(b.c===B.ap?b.a:b.b)+".wav"
 p.E2(B.ku)
 n=p.a
 s=3
