@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/audioprompt.dart';
@@ -19,12 +20,21 @@ Future<void> main() async {
   Wakelock.enable();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-  runApp(const TouchTrackerApp());
+  List<String> allStimuli = Stimuli.stimuli;
+  Map<String, AudioSource> audioSources = {};
+
+  for (String stimulus in allStimuli) {
+    audioSources[stimulus] = AudioSource.uri(Uri.parse(
+        'asset:///${AudioPrompt.assetPath}$stimulus${AudioPrompt.fileExtension}'));
+  }
+  runApp(TouchTrackerApp(audioSources: audioSources));
 }
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
-  const TouchTrackerApp({Key? key}) : super(key: key);
+  final Map<String, AudioSource> audioSources;
+  const TouchTrackerApp({Key? key, required this.audioSources})
+      : super(key: key);
 
   static const String _title = 'Touch Tracker';
 
@@ -33,7 +43,7 @@ class TouchTrackerApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<AudioPrompt>(
-          create: (_) => AudioPrompt(),
+          create: (_) => AudioPrompt(audioSources: audioSources),
           dispose: (context, audioPrompt) => audioPrompt.dispose(),
         ),
         Provider<ExperimentStorage>(create: (_) => getStorage()),
@@ -242,6 +252,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         builder: (context, child) => TrialPage(
                             key: Key('TrialPage:$index'),
                             stimuli: targets[index],
+                            nextStimuli: index < targets.length
+                                ? targets[index + 1]
+                                : null,
                             onTrialComplete: (bool isCorrect,
                                 {bool endExperiment = false}) {
                               _onTrialComplete(context,

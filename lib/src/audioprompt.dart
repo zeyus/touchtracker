@@ -25,10 +25,14 @@ class AudioPrompt {
   static const String fileExtension = '.wav';
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
   PlaybackState _playerState = PlaybackState.stopped;
+  Map<String, AudioSource>? audioSources;
   VoidCallback? _onPlayStart;
   VoidCallback? _onPlayComplete;
 
-  AudioPrompt({VoidCallback? onPlayStart, VoidCallback? onPlayComplete}) {
+  AudioPrompt(
+      {this.audioSources,
+      VoidCallback? onPlayStart,
+      VoidCallback? onPlayComplete}) {
     // allow for callbacks or statechange listeners
     if (onPlayStart != null) {
       this.onPlayStart = onPlayStart;
@@ -38,22 +42,51 @@ class AudioPrompt {
     }
   }
 
-  Future<void> play(StimulusPairTarget prompt) async {
+  Future<void> _setPlayerAsset(String target) async {
+    String filename = '$assetPath$target$fileExtension';
+    await player.setAsset(filename);
+  }
+
+  Future<void> play(
+      StimulusPairTarget prompt, StimulusPairTarget? preloadNext) async {
     if (_playerState == PlaybackState.playing) {
       return Future.error(
           AudioPromptException('AudioPrompt is already playing'));
     }
 
-    String target = prompt.getTargetStimulus();
-    String filename = '$assetPath$target$fileExtension';
     // Manually set player state to playing
     stateChangeListener(PlaybackState.playing);
+    String target = prompt.getTargetStimulus();
 
-    var duration = await player.setAsset(filename);
-    debugPrint("playing $filename for $prompt, duration: $duration");
-    await player.play().then((_) {
-      player.pause();
+    debugPrint("playing $target audio for $prompt");
+
+    if (audioSources != null && audioSources!.containsKey(target)) {
+      // use preloaded audio source
+      if (player.audioSource != audioSources![target]!) {
+        debugPrint("no preloaded audio source for $target, loading");
+        await player.setAudioSource(audioSources![target]!);
+      } else {
+        debugPrint("using preloaded audio source for $target");
+      }
+    } else {
+      // load audio from asset
+      await _setPlayerAsset(target);
+    }
+
+    await player.play().then((_) async {
+      await player.pause();
+      await player.seek(const Duration(milliseconds: 0));
       stateChangeListener(PlaybackState.completed);
+      debugPrint("finishe playing $target audio for $prompt");
+      if (preloadNext != null && audioSources != null) {
+        target = preloadNext.getTargetStimulus();
+        debugPrint("attempting to preload next stimulus $target");
+        if (audioSources!.containsKey(target) &&
+            player.audioSource != audioSources![target]!) {
+          debugPrint("preloading next audio source $target");
+          await player.setAudioSource(audioSources![target]!);
+        }
+      }
     });
   }
 

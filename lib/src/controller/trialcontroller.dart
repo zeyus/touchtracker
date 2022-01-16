@@ -15,6 +15,7 @@ class TrialController with ChangeNotifier {
   bool promptStarted = false;
   bool promptComplete = false;
   StimulusPairTarget stimuli;
+  StimulusPairTarget? nextStimuli;
   double distance = 0.0;
   Vector2 curXY = Vector2(0.0, 0.0);
   double distanceThreshold = 40.0;
@@ -24,7 +25,8 @@ class TrialController with ChangeNotifier {
   TrialController(
       {required this.distanceThreshold,
       required this.stimuli,
-      Offset? position}) {
+      Offset? position,
+      this.nextStimuli}) {
     currentPos = position ?? const Offset(0, 0);
     if (distanceThreshold == 0) {
       stimuliVisible = true;
@@ -77,7 +79,7 @@ class TrialController with ChangeNotifier {
         promptComplete = true;
         notifyListeners();
       };
-      audioPrompt.play(stimuli);
+      audioPrompt.play(stimuli, nextStimuli);
     }
   }
 }
