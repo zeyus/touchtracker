@@ -67136,7 +67136,7 @@ p.Dj(B.bN)
 s=3
 return A.Y(A.a(p.d,"audioCache").hn(0,o),$async$hn)
 case 3:m=d
-A.XL(A.ca(0,Math.max(1500-(Date.now()-n),1)),new A.TP(p),t.P)
+A.XL(A.ca(0,Math.max(1250-(Date.now()-n),1)),new A.TP(p),t.P)
 q=m
 s=1
 break
