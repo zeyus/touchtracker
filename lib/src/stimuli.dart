@@ -133,7 +133,7 @@ class StimulusPairTarget<T1, T2> extends StimulusPair<T1, T2> {
 
 class Stimuli {
   late final List<String> _nonPhonologicalStimuli;
-  final Map<String, String> _assetNames = {
+  static final Map<String, String> _assetNames = {
     'ball': 'assets/vector/ball.svg',
     'balloon': 'assets/vector/balloon.svg',
     'banana': 'assets/vector/banana.svg',
@@ -214,6 +214,7 @@ class Stimuli {
 
   final Map<String, Widget> _preparedAssets = {};
 
+  static List<String> get stimuli => _assetNames.keys.toList();
   get nonPhonologicalStimuli => _nonPhonologicalStimuli;
 
   Stimuli() {
