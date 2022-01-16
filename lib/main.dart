@@ -32,7 +32,10 @@ class TouchTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AudioPrompt>(create: (_) => AudioPrompt()),
+        Provider<AudioPrompt>(
+          create: (_) => AudioPrompt(),
+          dispose: (context, audioPrompt) => audioPrompt.dispose(),
+        ),
         Provider<ExperimentStorage>(create: (_) => getStorage()),
       ],
       child: Consumer<ExperimentStorage>(builder: (_, storage, __) {

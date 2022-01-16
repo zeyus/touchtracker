@@ -52,7 +52,7 @@ class AudioPrompt {
     var duration = await player.setAsset(filename);
     debugPrint("playing $filename for $prompt, duration: $duration");
     await player.play().then((_) {
-      player.stop();
+      player.pause();
       stateChangeListener(PlaybackState.completed);
     });
   }
@@ -85,5 +85,9 @@ class AudioPrompt {
 
   set onPlayComplete(VoidCallback callback) {
     _onPlayComplete = callback;
+  }
+
+  void dispose() {
+    player.dispose();
   }
 }
