@@ -21,7 +21,7 @@ enum PlaybackState {
 
 class AudioPrompt {
   final player = AudioPlayer();
-  static const String assetPath = 'audio/';
+  static const String assetPath = 'assets/audio/';
   static const String fileExtension = '.wav';
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
   PlaybackState _playerState = PlaybackState.stopped;
