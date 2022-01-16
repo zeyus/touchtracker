@@ -2,6 +2,8 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:touchtracker/src/audioprompt.dart';
+import 'package:touchtracker/src/stimuli.dart';
 import 'package:vector_math/vector_math.dart';
 
 class TrialController with ChangeNotifier {
@@ -10,13 +12,19 @@ class TrialController with ChangeNotifier {
   bool stimuliVisible = false;
   bool movementCancelled = false;
   bool trialCompleteCalled = false;
+  bool promptStarted = false;
+  bool promptComplete = false;
+  StimulusPairTarget stimuli;
   double distance = 0.0;
   Vector2 curXY = Vector2(0.0, 0.0);
   double distanceThreshold = 40.0;
   Offset? _startPos;
   late Offset currentPos;
 
-  TrialController({required this.distanceThreshold, Offset? position}) {
+  TrialController(
+      {required this.distanceThreshold,
+      required this.stimuli,
+      Offset? position}) {
     currentPos = position ?? const Offset(0, 0);
     if (distanceThreshold == 0) {
       stimuliVisible = true;
@@ -60,5 +68,16 @@ class TrialController with ChangeNotifier {
 
   Vector2 get startXY {
     return Vector2(startPos.dx, startPos.dy);
+  }
+
+  void playPrompt(AudioPrompt audioPrompt) {
+    if (!promptStarted) {
+      promptStarted = true;
+      audioPrompt.onPlayComplete = () {
+        promptComplete = true;
+        notifyListeners();
+      };
+      audioPrompt.play(stimuli);
+    }
   }
 }

@@ -16,22 +16,19 @@ class AudioPromptException implements Exception {
 enum PlaybackState {
   playing,
   completed,
+  stopped,
 }
 
-class AudioPrompt with ChangeNotifier {
+class AudioPrompt {
   final player = AudioPlayer();
   static const String assetPath = 'audio/';
   static const String fileExtension = '.wav';
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
-  late final bool onlyNotifyOnComplete;
-  PlaybackState _playerState = PlaybackState.playing;
+  PlaybackState _playerState = PlaybackState.stopped;
   VoidCallback? _onPlayStart;
   VoidCallback? _onPlayComplete;
 
-  AudioPrompt(
-      {VoidCallback? onPlayStart,
-      VoidCallback? onPlayComplete,
-      this.onlyNotifyOnComplete = false}) {
+  AudioPrompt({VoidCallback? onPlayStart, VoidCallback? onPlayComplete}) {
     // allow for callbacks or statechange listeners
     if (onPlayStart != null) {
       this.onPlayStart = onPlayStart;
@@ -70,15 +67,14 @@ class AudioPrompt with ChangeNotifier {
 
     if (state == PlaybackState.playing) {
       _onPlayStart?.call();
-      if (!onlyNotifyOnComplete) {
-        notifyListeners();
-      }
     }
     if (state == PlaybackState.completed) {
       _onPlayComplete?.call();
-      debugPrint("notify listeners");
-      notifyListeners();
     }
+  }
+
+  void resetState() {
+    _playerState = PlaybackState.stopped;
   }
 
   PlaybackState get playerState => _playerState;
