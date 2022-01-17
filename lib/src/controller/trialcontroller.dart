@@ -81,6 +81,15 @@ class TrialController with ChangeNotifier {
           notifyListeners();
         });
       };
+      audioPrompt.onPlayStart = () async {
+        // forced gross polling behaviour because app sleeps when not in use.
+        // this is fucking garbage and probably only needs to be done on android.
+        while (!promptComplete) {
+          await Future.delayed(const Duration(milliseconds: 25), () {
+            notifyListeners();
+          });
+        }
+      };
       audioPrompt.play(stimuli, nextStimuli);
     }
   }
