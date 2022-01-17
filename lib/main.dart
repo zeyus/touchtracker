@@ -275,7 +275,7 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         builder: (context, child) => TrialPage(
                             key: Key('TrialPage:$index'),
                             stimuli: targets[index],
-                            nextStimuli: index < targets.length
+                            nextStimuli: index < targets.length - 1
                                 ? targets[index + 1]
                                 : null,
                             onTrialComplete: (bool isCorrect,
