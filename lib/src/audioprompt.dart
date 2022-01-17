@@ -20,14 +20,26 @@ enum PlaybackState {
 }
 
 class AudioPrompt {
-  final player = AudioPlayer();
+  final player = AudioPlayer(
+      handleInterruptions: false,
+      audioLoadConfiguration: AudioLoadConfiguration(
+          androidLoadControl: AndroidLoadControl(
+        minBufferDuration: const Duration(milliseconds: 1),
+        maxBufferDuration: const Duration(seconds: 80),
+        bufferForPlaybackDuration: const Duration(milliseconds: 1),
+        bufferForPlaybackAfterRebufferDuration: const Duration(milliseconds: 1),
+        targetBufferBytes: 200000,
+      )));
   static const String assetPath = 'assets/audio/';
   static const String fileExtension = '.wav';
+  static ConcatenatingAudioSource? _experimentPlaylist;
+  bool _playlistLoaded = false;
   // getduration fails on web + low_latency. max is 1.5 second, so we use that.
   PlaybackState _playerState = PlaybackState.stopped;
-  Map<String, AudioSource>? audioSources;
+  List<AudioSource>? audioSources;
   VoidCallback? _onPlayStart;
   VoidCallback? _onPlayComplete;
+  int _currentIndex = -1;
 
   AudioPrompt(
       {this.audioSources,
@@ -40,12 +52,61 @@ class AudioPrompt {
     if (onPlayComplete != null) {
       this.onPlayComplete = onPlayComplete;
     }
+    // if (audioSource != null) {
+    //   player.setAudioSource(audioSource!);
+    // }
+    player.setLoopMode(LoopMode.off);
   }
 
-  Future<void> _setPlayerAsset(String target) async {
-    String filename = '$assetPath$target$fileExtension';
-    await player.setAsset(filename);
+  void updateExperimentPlaylist(List<StimulusPairTarget> pairs) {
+    List<AudioSource> playlistItems = [];
+    for (var pair in pairs) {
+      playlistItems.add(
+          audioSources![Stimuli.stimuli.indexOf(pair.getTargetStimulus())]);
+    }
+    _experimentPlaylist = ConcatenatingAudioSource(
+        children: playlistItems, useLazyPreparation: false);
   }
+
+  void createExperimentPlaylistIfNull(List<StimulusPairTarget> pairs) {
+    if (_experimentPlaylist == null) {
+      updateExperimentPlaylist(pairs);
+    }
+  }
+
+  Future<void> loadExperiment(List<StimulusPairTarget> pairs) async {
+    // @TODO: play a blank file to prepare the audio system
+    createExperimentPlaylistIfNull(pairs);
+    if (!_playlistLoaded) {
+      await player.setAudioSource(_experimentPlaylist!);
+      _playlistLoaded = true;
+
+      player.playbackEventStream.listen((event) async {
+        if (_playerState == PlaybackState.playing &&
+            event.processingState == ProcessingState.completed) {
+          if (event.updatePosition >= event.duration!) {
+            stateChangeListener(PlaybackState.completed);
+            Future.delayed(const Duration(milliseconds: 200), () async {
+              debugPrint("Pausing playback...");
+              await player.pause();
+              debugPrint("Moving item ${event.currentIndex} to $_currentIndex");
+              await _experimentPlaylist!
+                  .move(event.currentIndex!, _currentIndex);
+            });
+          }
+        }
+      });
+    }
+  }
+
+  set currentIndex(int index) {
+    _currentIndex = index;
+  }
+
+  // Future<void> _setPlayerAsset(String target) async {
+  //   String filename = '$assetPath$target$fileExtension';
+  //   await player.setAsset(filename);
+  // }
 
   Future<void> play(
       StimulusPairTarget prompt, StimulusPairTarget? preloadNext) async {
@@ -59,34 +120,20 @@ class AudioPrompt {
     String target = prompt.getTargetStimulus();
 
     debugPrint("playing $target audio for $prompt");
-
-    if (audioSources != null && audioSources!.containsKey(target)) {
-      // use preloaded audio source
-      if (player.audioSource != audioSources![target]!) {
-        debugPrint("no preloaded audio source for $target, loading");
-        await player.setAudioSource(audioSources![target]!);
-      } else {
-        debugPrint("using preloaded audio source for $target");
-      }
-    } else {
-      // load audio from asset
-      await _setPlayerAsset(target);
+    while (!_playlistLoaded) {
+      // just in case the playlist isn't loaded yet
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-
-    await player.play().then((_) async {
-      await player.pause();
-      await player.seek(const Duration(milliseconds: 0));
-      stateChangeListener(PlaybackState.completed);
-      debugPrint("finishe playing $target audio for $prompt");
-      if (preloadNext != null && audioSources != null) {
-        target = preloadNext.getTargetStimulus();
-        debugPrint("attempting to preload next stimulus $target");
-        if (audioSources!.containsKey(target) &&
-            player.audioSource != audioSources![target]!) {
-          debugPrint("preloading next audio source $target");
-          await player.setAudioSource(audioSources![target]!);
-        }
+    int lastIndex = _experimentPlaylist!.length - 1;
+    await _experimentPlaylist!.move(_currentIndex, lastIndex).then((_) async {
+      debugPrint(
+          "moved $target (index: $_currentIndex) to end of playlist (index: $lastIndex)");
+      if (player.currentIndex != lastIndex) {
+        await player.seek(Duration.zero, index: lastIndex);
+        debugPrint("Player seek to $lastIndex");
       }
+
+      player.play();
     });
   }
 

@@ -209,17 +209,22 @@ class Stimuli {
     StimulusPair('skate', 'snake'),
     StimulusPair('track', 'truck'),
   ];
-
-  final List<String> _allStimuli = [];
+  static final List<String> _experimentPlaylist = [];
+  static final List<String> _allStimuli = [];
 
   final Map<String, Widget> _preparedAssets = {};
 
-  static List<String> get stimuli => _assetNames.keys.toList();
+  static List<String> get stimuli {
+    if (_allStimuli.isEmpty) {
+      _allStimuli.addAll(_assetNames.keys);
+    }
+    return _allStimuli;
+  }
+
   get nonPhonologicalStimuli => _nonPhonologicalStimuli;
 
   Stimuli() {
-    _allStimuli.addAll(_assetNames.keys);
-    _nonPhonologicalStimuli = _allStimuli
+    _nonPhonologicalStimuli = stimuli
         .where((String s) =>
             !_phonologicalPairs.any((StimulusPair p) => p.isMember(s)))
         .toList();
@@ -244,7 +249,7 @@ class Stimuli {
     final List<StimulusPairTarget> result = [];
     // exclude target and competitor from list of all stimuli
     final List<String> nonCompetitorStimuli =
-        _allStimuli.where((String s) => s != pair.a && s != pair.b).toList();
+        stimuli.where((String s) => s != pair.a && s != pair.b).toList();
 
     final String critical = pair.getFromTarget(targetSrc);
     final String prime = pair.getCompetitorFromTarget(targetSrc);
@@ -382,10 +387,19 @@ class Stimuli {
       pairs.addAll(conditions[i]);
     }
     pairs.addAll(randomNonPhonologicalPairs(nonPhonoDistribution.removeLast()));
+    updateExperimentPlaylist(pairs);
     return pairs;
   }
 
+  static updateExperimentPlaylist(List<StimulusPairTarget> pairs) {
+    _experimentPlaylist.clear();
+    for (StimulusPairTarget pair in pairs) {
+      _experimentPlaylist.add(pair.getTargetStimulus());
+    }
+  }
+
+  static List<String> get experimentPlaylist => _experimentPlaylist;
+
   // getters
   List<StimulusPair> get phonologicalPairs => _phonologicalPairs;
-  List<String> get allStimuli => _allStimuli;
 }

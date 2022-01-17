@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -21,18 +22,36 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   List<String> allStimuli = Stimuli.stimuli;
-  Map<String, AudioSource> audioSources = {};
+  List<AudioSource> audioSources = [];
+
+  // prepare audio pipeline
+  final session = await AudioSession.instance;
+
+  await session.configure(const AudioSessionConfiguration.speech().copyWith(
+    avAudioSessionCategory: AVAudioSessionCategory.playback,
+    avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+    avAudioSessionMode: AVAudioSessionMode.voicePrompt,
+    avAudioSessionRouteSharingPolicy:
+        AVAudioSessionRouteSharingPolicy.independent,
+    androidAudioAttributes: const AndroidAudioAttributes(
+      contentType: AndroidAudioContentType.sonification,
+      usage: AndroidAudioUsage.notificationCommunicationInstant,
+      flags: AndroidAudioFlags(1 & 256),
+    ),
+    androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientExclusive,
+  ));
 
   for (String stimulus in allStimuli) {
-    audioSources[stimulus] = AudioSource.uri(Uri.parse(
-        'asset:///${AudioPrompt.assetPath}$stimulus${AudioPrompt.fileExtension}'));
+    audioSources.add(AudioSource.uri(Uri.parse(
+        'asset:///${AudioPrompt.assetPath}$stimulus${AudioPrompt.fileExtension}')));
   }
+
   runApp(TouchTrackerApp(audioSources: audioSources));
 }
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
-  final Map<String, AudioSource> audioSources;
+  final List<AudioSource> audioSources;
   const TouchTrackerApp({Key? key, required this.audioSources})
       : super(key: key);
 
@@ -237,11 +256,15 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                 return const Text('Something went wrong!');
               }
               totalPages = targets.length.toDouble();
+              Provider.of<AudioPrompt>(context, listen: false)
+                  .loadExperiment(targets);
               return PageView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   controller: controller,
                   itemCount: targets.length,
                   itemBuilder: (context, index) {
+                    Provider.of<AudioPrompt>(context, listen: false)
+                        .currentIndex = index;
                     return MultiProvider(
                         providers: [
                           Provider<AudioPrompt>.value(

@@ -77,7 +77,9 @@ class TrialController with ChangeNotifier {
       promptStarted = true;
       audioPrompt.onPlayComplete = () {
         promptComplete = true;
-        notifyListeners();
+        Future.delayed(const Duration(milliseconds: 10), () {
+          notifyListeners();
+        });
       };
       audioPrompt.play(stimuli, nextStimuli);
     }

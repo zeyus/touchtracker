@@ -374,6 +374,10 @@ class DataLog {
   }
 
   DataRow trialEnd(bool correct) {
+    if (_trialTemplate == null) {
+      debugPrint("Error: Trial end called before trial start");
+      return DataRow.fromDataRow(_template);
+    }
     _trialTemplate!
       ..timestamp = DateTime.now()
       ..trialEndTime = DateTime.now()

@@ -27,4 +27,8 @@ class TouchTrackerBloc {
   }
 
   Stimuli get stimuli => _stimuli;
+
+  void dispose() {
+    _targetsSubject.close();
+  }
 }
