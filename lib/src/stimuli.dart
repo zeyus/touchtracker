@@ -204,6 +204,7 @@ class Stimuli {
     StimulusPair('fish', 'fist'),
     StimulusPair('microphone', 'microscope'),
     StimulusPair('mouse', 'mouth'),
+    StimulusPair('moon', 'spoon'),
     StimulusPair('road', 'robe'),
     StimulusPair('sheep', 'ship'),
     StimulusPair('skate', 'snake'),
