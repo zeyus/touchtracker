@@ -80,22 +80,24 @@ class AudioPrompt {
     if (!_playlistLoaded) {
       await player.setAudioSource(_experimentPlaylist!);
       _playlistLoaded = true;
-
-      player.playbackEventStream.listen((event) async {
-        if (_playerState == PlaybackState.playing &&
-            event.processingState == ProcessingState.completed) {
-          if (event.updatePosition >= event.duration!) {
-            stateChangeListener(PlaybackState.completed);
-            Future.delayed(const Duration(milliseconds: 200), () async {
-              debugPrint("Pausing playback...");
-              await player.pause();
-              debugPrint("Moving item ${event.currentIndex} to $_currentIndex");
-              await _experimentPlaylist!
-                  .move(event.currentIndex!, _currentIndex);
-            });
+      if (!kIsWeb) {
+        player.playbackEventStream.listen((event) async {
+          if (_playerState == PlaybackState.playing &&
+              event.processingState == ProcessingState.completed) {
+            if (event.updatePosition >= event.duration!) {
+              stateChangeListener(PlaybackState.completed);
+              Future.delayed(const Duration(milliseconds: 25), () async {
+                debugPrint("Pausing playback (non-web)...");
+                await player.pause();
+                debugPrint(
+                    "Moving item ${event.currentIndex} to $_currentIndex");
+                await _experimentPlaylist!
+                    .move(event.currentIndex!, _currentIndex);
+              });
+            }
           }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -134,6 +136,16 @@ class AudioPrompt {
       }
 
       player.play();
+      if (kIsWeb) {
+        debugPrint("Setting web callback to pause after 1.25 seconds...");
+        Future.delayed(const Duration(milliseconds: 1250), () async {
+          debugPrint("Pausing playback (web)...");
+          await player.pause();
+          debugPrint("Moving item lastIndex to $_currentIndex");
+          await _experimentPlaylist!.move(lastIndex, _currentIndex);
+          stateChangeListener(PlaybackState.completed);
+        });
+      }
     });
   }
 
