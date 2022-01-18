@@ -107,6 +107,9 @@ class DataRow {
   DateTime? experimentEndTime;
   int? experimentElapsedTime;
   String? subjectId;
+  int? subjectAge;
+  String? subjectGender;
+  String? subjectHandedness;
   String? condition;
   String? targetStimulus;
   Target? targetPosition;
@@ -149,6 +152,9 @@ class DataRow {
     ['experimentEndTime', 'experiment_end_time'],
     ['experimentElapsedTime', 'experiment_elapsed_time'],
     ['subjectId', 'subject_id'],
+    ['subjectAge', 'subject_age'],
+    ['subjectGender', 'subject_gender'],
+    ['subjectHandedness', 'subject_handedness'],
     ['condition', 'condition'],
     ['targetStimulus', 'target_stimulus'],
     ['targetPosition', 'target_position'],
@@ -193,6 +199,9 @@ class DataRow {
       ..experimentEndTime = dr.experimentEndTime
       ..experimentElapsedTime = dr.experimentElapsedTime
       ..subjectId = dr.subjectId
+      ..subjectAge = dr.subjectAge
+      ..subjectGender = dr.subjectGender
+      ..subjectHandedness = dr.subjectHandedness
       ..condition = dr.condition
       ..targetStimulus = dr.targetStimulus
       ..targetPosition = dr.targetPosition
@@ -249,6 +258,12 @@ class DataRow {
         return experimentElapsedTime.toString();
       case 'subjectId':
         return subjectId;
+      case 'subjectAge':
+        return subjectAge.toString();
+      case 'subjectGender':
+        return subjectGender;
+      case 'subjectHandedness':
+        return subjectHandedness;
       case 'condition':
         return condition;
       case 'targetStimulus':
@@ -336,12 +351,16 @@ class DataLog {
     _template.deviceInfo = deviceInfo;
   }
 
-  void start(String experimentId, String subjectId, String condition) {
+  void start(String experimentId, String subjectId, String condition,
+      {int? subjectAge, String? subjectGender, String? subjectHandedness}) {
     _data.clear();
     _template
       ..experiment = experimentId
       ..timestamp = DateTime.now()
       ..subjectId = subjectId
+      ..subjectAge = subjectAge
+      ..subjectGender = subjectGender
+      ..subjectHandedness = subjectHandedness
       ..condition = condition
       ..logSequence = 0
       ..experimentElapsedTime = 0
@@ -459,6 +478,9 @@ class ExperimentLog {
   int _debugLoggedSamples = 0;
   int _debugDroppedSamples = 0;
   String subjectId = '';
+  int? subjectAge;
+  String? subjectGender;
+  String? subjectHandedness;
   String condition = '';
   ExperimentLog({required this.storage, required this.experimentId});
 
@@ -480,7 +502,10 @@ class ExperimentLog {
       _writeHeader();
     }
 
-    _dataLog.start(experimentId, subjectId, condition);
+    _dataLog.start(experimentId, subjectId, condition,
+        subjectAge: subjectAge,
+        subjectGender: subjectGender,
+        subjectHandedness: subjectHandedness);
 
     // get device information from plugin
     final deviceInfoPlugin = DeviceInfoPlugin();

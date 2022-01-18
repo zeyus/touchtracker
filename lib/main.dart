@@ -87,7 +87,10 @@ class ExperimentStartWidget extends StatefulWidget {
 class _ExperimentStartWidget extends State<ExperimentStartWidget> {
   final _formKey = GlobalKey<FormState>();
   final participantController = TextEditingController();
+  final genderOtherController = TextEditingController();
+  final ageController = TextEditingController();
   String _selectedGender = '';
+  String _selectedHandedness = '';
 
   @override
   void dispose() {
@@ -129,6 +132,7 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                         controller: participantController,
                         decoration: const InputDecoration(
                           labelText: "Participant ID",
+                          icon: Icon(Icons.people),
                         ),
                         validator: (val) {
                           if (val == null || val.isEmpty) {
@@ -140,9 +144,51 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                         keyboardType: TextInputType.name,
                       ),
                       Row(
-                        children: [
+                        // participant age textformfield
+                        children: <Widget>[
                           Expanded(
-                            child: DropdownButton<String>(
+                            child: TextFormField(
+                              controller: ageController,
+                              decoration: const InputDecoration(
+                                labelText: "Age",
+                                icon: Icon(Icons.timer),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return "Age cannot be empty";
+                                } else {
+                                  if (int.tryParse(val) == null) {
+                                    return "Age must be a number";
+                                  } else {
+                                    if (int.tryParse(val)! < 1 ||
+                                        int.tryParse(val)! > 110) {
+                                      return "Age must be between 1 and 110";
+                                    } else {
+                                      return null;
+                                    }
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              decoration: const InputDecoration(
+                                labelText: "Gender",
+                                icon: Icon(Icons.question_answer),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return "Please select a gender";
+                                } else {
+                                  return null;
+                                }
+                              },
                               isExpanded: true,
                               value: _selectedGender,
                               items: const <DropdownMenuItem<String>>[
@@ -172,42 +218,6 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                                 ),
                               ],
                               onChanged: (value) {
-                                if (value == 'o') {
-                                  showDialog(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          title: const Text('Other'),
-                                          content: TextFormField(
-                                            decoration: const InputDecoration(
-                                              labelText: 'Please specify',
-                                            ),
-                                            validator: (val) {
-                                              if (val == null || val.isEmpty) {
-                                                return "Please specify";
-                                              } else {
-                                                return null;
-                                              }
-                                            },
-                                            keyboardType: TextInputType.text,
-                                          ),
-                                          actions: <Widget>[
-                                            ElevatedButton(
-                                              child: const Text('Cancel'),
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                            ),
-                                            ElevatedButton(
-                                              child: const Text('OK'),
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                }
                                 setState(() {
                                   _selectedGender = value!;
                                 });
@@ -216,12 +226,56 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                           ),
                         ],
                       ),
-                      TextField(
-                        decoration: const InputDecoration(labelText: "Age"),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.digitsOnly
-                        ], // Only numbers can be entered
+                      Row(
+                        children: [Expanded(child: _buildOtherGenderField())],
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              decoration: const InputDecoration(
+                                labelText: "Handedness",
+                                icon: Icon(Icons.clean_hands),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return "Please select handedness";
+                                } else {
+                                  return null;
+                                }
+                              },
+                              isExpanded: true,
+                              value: _selectedHandedness,
+                              items: const <DropdownMenuItem<String>>[
+                                DropdownMenuItem<String>(
+                                  value: '',
+                                  enabled: true,
+                                  child: Text(
+                                    'Select your handedness...',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'left',
+                                  child: Text('Left-handed'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'm',
+                                  child: Text('Right-handed'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'ambidextrous',
+                                  child: Text('Ambidextrous'),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedHandedness = value!;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -230,20 +284,53 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                 ElevatedButton(
                   child: const Text('Start Experiment'),
                   onPressed: () {
-                    final participant = participantController.text;
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner(
-                        reason: MaterialBannerClosedReason.dismiss);
                     if (_formKey.currentState != null &&
                         _formKey.currentState!.validate()) {
-                      debugPrint("adding participant $participant");
+                      final participant = participantController.text;
+                      final age = int.tryParse(ageController.text);
+                      final String gender;
+                      switch (_selectedGender) {
+                        case 'f':
+                          gender = "female";
+                          break;
+                        case 'm':
+                          gender = "male";
+                          break;
+                        case 'n':
+                          gender = "non-binary";
+                          break;
+                        case 'o':
+                          gender = genderOtherController.text;
+                          break;
+                        default:
+                          throw Exception(
+                              "No gender selected but validation passed.");
+                      }
+                      final handedness = _selectedHandedness;
+
+                      debugPrint(
+                          "adding participant $participant, age: $age, gender: $gender, handedness: $handedness.");
                       Provider.of<ExperimentLog>(context, listen: false)
                           .subjectId = participant;
+                      Provider.of<ExperimentLog>(context, listen: false)
+                          .subjectAge = age;
+                      Provider.of<ExperimentLog>(context, listen: false)
+                          .subjectGender = gender;
+                      Provider.of<ExperimentLog>(context, listen: false)
+                          .subjectHandedness = handedness;
                       // condition, in this case it's always experimental
                       Provider.of<ExperimentLog>(context, listen: false)
                           .condition = 'experimental';
                       SystemChrome.setEnabledSystemUIMode(
                           SystemUiMode.immersive);
                       participantController.clear();
+                      ageController.clear();
+                      genderOtherController.clear();
+                      setState(() {
+                        _selectedGender = '';
+                        _selectedHandedness = '';
+                      });
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -260,19 +347,6 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
                                           listen: false)),
                                 ], child: TouchTrackerWidget())),
                       );
-                    } else {
-                      ScaffoldMessenger.of(context).showMaterialBanner(
-                        MaterialBanner(
-                          content: const Text('Please enter a participant ID'),
-                          actions: [
-                            TextButton(
-                              child: const Text('OK'),
-                              onPressed: () => ScaffoldMessenger.of(context)
-                                  .hideCurrentMaterialBanner(),
-                            )
-                          ],
-                        ),
-                      );
                     }
                   },
                 ),
@@ -281,6 +355,27 @@ class _ExperimentStartWidget extends State<ExperimentStartWidget> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOtherGenderField() {
+    if (_selectedGender != 'o') {
+      return Container();
+    }
+
+    return TextFormField(
+      controller: genderOtherController,
+      decoration: const InputDecoration(
+        labelText: "Please specify gender",
+      ),
+      validator: (val) {
+        if (val == null || val.isEmpty) {
+          return "Please select gender from the list or fill in \"other\"";
+        } else {
+          return null;
+        }
+      },
+      keyboardType: TextInputType.text,
     );
   }
 }
