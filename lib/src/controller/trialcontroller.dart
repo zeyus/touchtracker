@@ -15,6 +15,7 @@ class TrialController with ChangeNotifier {
   bool promptStarted = false;
   bool promptComplete = false;
   StimulusPairTarget stimuli;
+  StimulusPairTarget? nextStimuli;
   double distance = 0.0;
   Vector2 curXY = Vector2(0.0, 0.0);
   double distanceThreshold = 40.0;
@@ -24,7 +25,8 @@ class TrialController with ChangeNotifier {
   TrialController(
       {required this.distanceThreshold,
       required this.stimuli,
-      Offset? position}) {
+      Offset? position,
+      this.nextStimuli}) {
     currentPos = position ?? const Offset(0, 0);
     if (distanceThreshold == 0) {
       stimuliVisible = true;
@@ -75,9 +77,20 @@ class TrialController with ChangeNotifier {
       promptStarted = true;
       audioPrompt.onPlayComplete = () {
         promptComplete = true;
-        notifyListeners();
+        Future.delayed(const Duration(milliseconds: 10), () {
+          notifyListeners();
+        });
       };
-      audioPrompt.play(stimuli);
+      audioPrompt.onPlayStart = () async {
+        // forced gross polling behaviour because app sleeps when not in use.
+        // this is fucking garbage and probably only needs to be done on android.
+        while (!promptComplete) {
+          await Future.delayed(const Duration(milliseconds: 25), () {
+            notifyListeners();
+          });
+        }
+      };
+      audioPrompt.play(stimuli, nextStimuli);
     }
   }
 }

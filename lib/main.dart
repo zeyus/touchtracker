@@ -1,5 +1,7 @@
 import 'dart:collection';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'package:provider/provider.dart';
 import 'package:touchtracker/src/audioprompt.dart';
@@ -19,12 +21,39 @@ Future<void> main() async {
   Wakelock.enable();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-  runApp(const TouchTrackerApp());
+  List<String> allStimuli = Stimuli.stimuli;
+  List<AudioSource> audioSources = [];
+
+  // prepare audio pipeline
+  final session = await AudioSession.instance;
+
+  await session.configure(const AudioSessionConfiguration.speech().copyWith(
+    avAudioSessionCategory: AVAudioSessionCategory.playback,
+    avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+    avAudioSessionMode: AVAudioSessionMode.voicePrompt,
+    avAudioSessionRouteSharingPolicy:
+        AVAudioSessionRouteSharingPolicy.independent,
+    androidAudioAttributes: const AndroidAudioAttributes(
+      contentType: AndroidAudioContentType.sonification,
+      usage: AndroidAudioUsage.notificationCommunicationInstant,
+      flags: AndroidAudioFlags(1 & 256),
+    ),
+    androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientExclusive,
+  ));
+
+  for (String stimulus in allStimuli) {
+    audioSources.add(AudioSource.uri(Uri.parse(
+        'asset:///${AudioPrompt.assetPath}$stimulus${AudioPrompt.fileExtension}')));
+  }
+
+  runApp(TouchTrackerApp(audioSources: audioSources));
 }
 
 /// This is the main application widget.
 class TouchTrackerApp extends StatelessWidget {
-  const TouchTrackerApp({Key? key}) : super(key: key);
+  final List<AudioSource> audioSources;
+  const TouchTrackerApp({Key? key, required this.audioSources})
+      : super(key: key);
 
   static const String _title = 'Touch Tracker';
 
@@ -32,7 +61,10 @@ class TouchTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AudioPrompt>(create: (_) => AudioPrompt()),
+        Provider<AudioPrompt>(
+          create: (_) => AudioPrompt(audioSources: audioSources),
+          dispose: (context, audioPrompt) => audioPrompt.dispose(),
+        ),
         Provider<ExperimentStorage>(create: (_) => getStorage()),
       ],
       child: Consumer<ExperimentStorage>(builder: (_, storage, __) {
@@ -314,11 +346,15 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                 return const Text('Something went wrong!');
               }
               totalPages = targets.length.toDouble();
+              Provider.of<AudioPrompt>(context, listen: false)
+                  .loadExperiment(targets);
               return PageView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   controller: controller,
                   itemCount: targets.length,
                   itemBuilder: (context, index) {
+                    Provider.of<AudioPrompt>(context, listen: false)
+                        .currentIndex = index;
                     return MultiProvider(
                         providers: [
                           Provider<AudioPrompt>.value(
@@ -329,6 +365,9 @@ class _TouchTrackerWidgetState extends State<TouchTrackerWidget> {
                         builder: (context, child) => TrialPage(
                             key: Key('TrialPage:$index'),
                             stimuli: targets[index],
+                            nextStimuli: index < targets.length - 1
+                                ? targets[index + 1]
+                                : null,
                             onTrialComplete: (bool isCorrect,
                                 {bool endExperiment = false}) {
                               _onTrialComplete(context,
