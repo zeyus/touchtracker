@@ -32,30 +32,27 @@ class TargetableStimulus extends StatelessWidget {
             child: Column(
               crossAxisAlignment: alignment,
               children: [
-                SizedBox(
-                  height: 200,
-                  width: 200,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black, width: 1),
+                DragTarget(builder: (context, candidateData, rejectedData) {
+                  return SizedBox(
+                    height: 200,
+                    width: 200,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 180,
+                          height: 180,
+                          child: child,
+                        ),
+                      ),
                     ),
-                    child: DragTarget(
-                      builder: (context, candidateData, rejectedData) {
-                        return Center(
-                          child: SizedBox(
-                            width: 180,
-                            height: 180,
-                            child: child,
-                          ),
-                        );
-                      },
-                      onWillAccept: (_) {
-                        onStimulusReached(stimuli.target == which);
-                        return true;
-                      },
-                    ),
-                  ),
-                ),
+                  );
+                }, onWillAccept: (_) {
+                  onStimulusReached(stimuli.target == which);
+                  return true;
+                }),
               ],
             ),
           ),
