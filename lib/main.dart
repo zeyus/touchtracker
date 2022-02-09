@@ -72,7 +72,9 @@ class TouchTrackerApp extends StatelessWidget {
             create: (_) =>
                 ExperimentLog(storage: storage, experimentId: 'CandyCandle'),
             child: const MaterialApp(
-                title: _title, home: ExperimentStartWidget()));
+                debugShowCheckedModeBanner: false,
+                title: _title,
+                home: ExperimentStartWidget()));
       }),
     );
   }
